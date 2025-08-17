@@ -1,0 +1,31 @@
+dataset_id,dataset_name,api_url
+6gct-yv67,DQS NHIS Adult Summary Health Statistics,https://data.cdc.gov/resource/6gct-yv67.json
+8ekv-ep3s,DQS NHANES Select Mean Dietary Intake Estimates,https://data.cdc.gov/resource/8ekv-ep3s.json
+pket-re4s,DQS NHANES Select Chronic Conditions Prevalence Estimates,https://data.cdc.gov/resource/pket-re4s.json
+35bp-whkw,DQS NHIS Children Summary Statistics,https://data.cdc.gov/resource/35bp-whkw.json
+v7tk-n6v3,DQS NHANES Select Infectious Diseases Prevalence Estimates,https://data.cdc.gov/resource/v7tk-n6v3.json
+36ue-xht5,DQS NHANES Select Oral Health Prevalence Estimates,https://data.cdc.gov/resource/36ue-xht5.json
+hdja-ybdg,DQS Medicaid coverage among persons under age 65 by selected characteristics United States (Archived),https://data.cdc.gov/resource/hdja-ybdg.json
+s57w-7gbe,DQS National health spending United States,https://data.cdc.gov/resource/s57w-7gbe.json
+uzn2-cq9f,DQS Obesity among children and adolescents aged 2-19 years by selected characteristics United States,https://data.cdc.gov/resource/uzn2-cq9f.json
+yib5-h3pw,DQS Dentists by state United States,https://data.cdc.gov/resource/yib5-h3pw.json
+j7ym-uwqy,DQS Infant neonatal and postneonatal mortality rates by detailed race and Hispanic origin of mother United States,https://data.cdc.gov/resource/j7ym-uwqy.json
+va5e-efw9,DQS Hypertension in adults age 20 and older by selected characteristics United States,https://data.cdc.gov/resource/va5e-efw9.json
+gu48-2cs8,DQS Personal healthcare spending United States,https://data.cdc.gov/resource/gu48-2cs8.json
+w26f-tf3h,DQS Death rates for suicide by sex race Hispanic origin and age United States from CDC WONDER,https://data.cdc.gov/resource/w26f-tf3h.json
+kusj-ex57,DQS Prescription drug use in the past 30 days by sex race and Hispanic origin and age group United States,https://data.cdc.gov/resource/kusj-ex57.json
+pjb2-jvdr,DQS Infant mortality rates by race and Hispanic origin of mother state and territory United States and U.S. dependent areas (Archived),https://data.cdc.gov/resource/pjb2-jvdr.json
+p4r5-qsgs,DQS Delay or nonreceipt of needed medical care prescription drugs or dental care during the past 12 months due to cost United States(Archived),https://data.cdc.gov/resource/p4r5-qsgs.json
+8miz-siyd,DQS Community hospital beds by state United States,https://data.cdc.gov/resource/8miz-siyd.json
+rg3t-4dpf,DQS Low birthweight live births by race and Hispanic origin of mother state and territory United States and U.S. dependent areas,https://data.cdc.gov/resource/rg3t-4dpf.json
+v3ih-gzx4,DQS Use of selected substances in the past 30 days among 12th graders 10th graders and 8th graders by sex and race United States,https://data.cdc.gov/resource/v3ih-gzx4.json
+6tn6-vc33,DQS Cholesterol in adults age 20 and older by selected characteristics United States,https://data.cdc.gov/resource/6tn6-vc33.json
+rdjz-vn2n,DQS Drug overdose death rates by drug type sex age race and Hispanic origin United States from CDC WONDER,https://data.cdc.gov/resource/rdjz-vn2n.json
+7siw-u4fz,DQS Health care employment and wages by selected occupations United States,https://data.cdc.gov/resource/7siw-u4fz.json
+e4ec-z5aa,DQS Estimate of Emergency Department Visits in the United States 2016-2022,https://data.cdc.gov/resource/e4ec-z5aa.json
+h3hw-hzvg,DQS Death rates for malignant neoplasms by sex race Hispanic origin and age United States,https://data.cdc.gov/resource/h3hw-hzvg.json
+7aq9-prdf,DQS Death rates for heart disease by sex race Hispanic origin and age United States from CDC WONDER,https://data.cdc.gov/resource/7aq9-prdf.json
+be57-s94j,DQS Normal weight overweight and obesity among adults aged 20 and over by selected characteristics United States,https://data.cdc.gov/resource/be57-s94j.json
+4q35-rqzk,DQS Hospital admission average length of stay outpatient visits and outpatient surgery by type of ownership and size of hospital United States,https://data.cdc.gov/resource/4q35-rqzk.json
+wd75-kcmv,DQS Fetal late fetal and perinatal mortality rates by detailed race and Hispanic origin of mother United States,https://data.cdc.gov/resource/wd75-kcmv.json
+btv3-srcc,DQS NHIS Functioning difficulties in adults age 18 and older by selected characteristics United States,https://data.cdc.gov/resource/btv3-srcc.json

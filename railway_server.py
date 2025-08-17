@@ -1,0 +1,1611 @@
+# DQS_SERVER2_Railway.py
+# Railway deployment version with enhanced CORS and port handling
+
+import os, re, json, unicodedata, urllib.parse, csv
+from typing import Dict, Any, List, Optional, Tuple
+from fastapi import FastAPI, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, HTMLResponse
+import httpx
+
+def _dqs_slug(s: str) -> str:
+    s = (s or '').lower().strip()
+    s = re.sub(r"[^a-z0-9\s]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    return s
+
+# Global variables to hold loaded keyword data
+LOADED_KEYWORDS = {}
+DATASET_METADATA = {}
+TOPIC_ROUTES = {}
+DQS_TOPIC_MAPPING = {}
+GROUPING_CATEGORIES = {}
+
+APP_NAME = "cdc_health_data_system"
+APP_VERSION = "1.0.0-railway"
+PAGE_LIMIT = int(os.getenv("SOCRATA_PAGE_LIMIT", "5000"))
+SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN")
+HEADERS = {"X-App-Token": SOCRATA_APP_TOKEN} if SOCRATA_APP_TOKEN else {}
+CAT_PATH = os.getenv("DQS_CATALOG_PATH", "dqs_catalog.csv")
+USER_KEYWORDS_PATH = os.getenv("DQS_KEYWORDS_PATH", "dqs_keywords.json")
+DQS_ALLOWED_DATASETS = os.getenv("DQS_ALLOWED_DATASETS", "").strip()
+
+app = FastAPI(title="CDC Health Data Question System")
+
+# Enhanced CORS for Railway deployment
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your work domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+SOCRATA_API_FIELDS = [
+    "topic","subtopic","taxonomy","classification",
+    "group","group_id","subgroup","subgroup_id",
+    "time_period","time_period_id","estimate","standard_error",
+    "estimate_lci","estimate_uci","flag","footnote_id_list"
+]
+
+def norm(s: str) -> str:
+    return re.sub(r"\s+"," ", unicodedata.normalize("NFKC", str(s or "")).strip().lower())
+
+def tokenize(s: str): 
+    return re.findall(r"[a-z0-9]+", norm(s))
+
+async def fetch(url: str):
+    try:
+        async with httpx.AsyncClient(timeout=90, headers=HEADERS) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            data = r.json()
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+def create_enhanced_error_message(query: str) -> str:
+    main_topic = extract_main_health_topic(query)
+    cdc_link = get_relevant_cdc_link(query)
+    
+    if main_topic:
+        return f"Estimates for **{main_topic}** are not available in our data query system at this time, but more information can be found at the CDC: [Click here for {main_topic} information]({cdc_link}). You can also try asking about available topics like diabetes, heart disease, high blood pressure, asthma, depression, flu vaccination, or cancer."
+    else:
+        return f"The requested health information is not available in our data query system at this time, but you may find relevant information at: [CDC Health Information]({cdc_link}). Try asking about available topics like diabetes, heart disease, high blood pressure, asthma, depression, flu vaccination, or cancer."
+
+def extract_main_health_topic(query: str) -> str:
+    if not query:
+        return ""
+    
+    query_lower = query.lower().strip()
+    remove_phrases = [
+        "how many", "what is", "what are", "tell me about", "information about",
+        "data on", "statistics for", "prevalence of", "rates of", "cases of",
+        "people with", "adults with", "children with", "by gender", "by race",
+        "by age", "by state", "in men", "in women", "in adults", "in children"
+    ]
+    
+    for phrase in remove_phrases:
+        query_lower = query_lower.replace(phrase, "")
+    
+    words = query_lower.split()
+    stop_words = {"the", "and", "or", "in", "on", "at", "to", "for", "of", "with", "by"}
+    words = [w for w in words if w not in stop_words and len(w) > 2]
+    
+    if words:
+        return " ".join(words[:3])
+    
+    return query.strip()
+
+def get_relevant_cdc_link(query: str) -> str:
+    if not query:
+        return "https://www.cdc.gov/"
+    
+    query_lower = query.lower()
+    
+    CDC_TOPIC_LINKS = {
+        "suicide": "https://www.cdc.gov/suicide/index.html",
+        "dental": "https://www.cdc.gov/oralhealth/index.html",
+        "diabetes": "https://www.cdc.gov/diabetes/index.html",
+        "cancer": "https://www.cdc.gov/cancer/index.htm"
+    }
+    
+    for topic, link in CDC_TOPIC_LINKS.items():
+        if topic in query_lower:
+            return link
+    
+    if any(term in query_lower for term in ["vaccine", "vaccination", "immunization", "shot"]):
+        return "https://www.cdc.gov/vaccines/index.html"
+    elif any(term in query_lower for term in ["mental", "depression", "anxiety", "suicide"]):
+        return "https://www.cdc.gov/mentalhealth/index.htm"
+    else:
+        return "https://www.cdc.gov/"
+
+def get_dqs_topic_slug(indicator: str, query: str = "", dataset_info: dict = None) -> str:
+    if not indicator:
+        return ""
+    
+    indicator_clean = indicator.lower().strip()
+    query_clean = (query or "").lower().strip()
+    
+    # Special handling for drug overdose - needs topic/subtopic structure
+    if "drug overdose" in indicator_clean or "overdose" in indicator_clean:
+        return "drug-overdose-deaths"
+    
+    # Special handling for suicide
+    if "suicide" in indicator_clean:
+        return "suicide"
+    
+    if DQS_TOPIC_MAPPING:
+        for key, value in DQS_TOPIC_MAPPING.items():
+            if key.lower() in indicator_clean or indicator_clean in key.lower():
+                return value
+    
+    children_keywords = ["children", "child", "kids", "pediatric", "childhood", "youth"]
+    is_children_context = any(kw in indicator_clean for kw in children_keywords) or any(kw in query_clean for kw in children_keywords)
+    
+    if any(term in indicator_clean for term in ["flu", "influenza"]):
+        if is_children_context:
+            return "receipt-of-influenza-vaccination-among-children"
+        else:
+            return "receipt-of-influenza-vaccination-among-adults"
+    
+    return _dqs_slug(indicator_clean)
+
+def get_dqs_group_slug(group: str) -> str:
+    if not group:
+        return ""
+    
+    group_clean = group.lower().strip()
+    
+    if GROUPING_CATEGORIES:
+        for category_name, category_data in GROUPING_CATEGORIES.items():
+            for key, value in category_data.items():
+                if key in group_clean or group_clean in key:
+                    return _dqs_slug(value)
+    
+    return _dqs_slug(group_clean)
+
+def load_user_keywords():
+    global LOADED_KEYWORDS, DATASET_METADATA, TOPIC_ROUTES, DQS_TOPIC_MAPPING, GROUPING_CATEGORIES
+    
+    if os.path.exists(USER_KEYWORDS_PATH):
+        try:
+            with open(USER_KEYWORDS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            LOADED_KEYWORDS = data.get("topic_keywords", {})
+            DATASET_METADATA = data.get("dataset_metadata", {})
+            TOPIC_ROUTES = data.get("topic_routes", {})
+            DQS_TOPIC_MAPPING = data.get("dqs_topic_mapping", {})
+            GROUPING_CATEGORIES = data.get("grouping_categories", {})
+            
+            # COMPREHENSIVE FIXES FOR ALL TOPICS
+            print("🔧 APPLYING COMPREHENSIVE TOPIC FIXES...")
+            
+            # COMPREHENSIVE TOPIC ROUTING FIXES
+            essential_routes = {
+                "suicide": {"adult": "w26f-tf3h", "surveillance": "g4ie-h725"},
+                "dental care": {"adult": "gj3i-hsbz", "oral_health": "36ue-xht5"},
+                "oral health": {"adult": "gj3i-hsbz", "detailed": "36ue-xht5"},
+                "cancer": {"adult": "gj3i-hsbz", "mortality": "h3hw-hzvg"},
+                "heart disease": {"adult": "gj3i-hsbz", "mortality": "7aq9-prdf"},
+                "drug overdose": {"mortality": "rdjz-vn2n", "surveillance": "g4ie-h725"},
+                "cholesterol": {"adult": "gj3i-hsbz", "measured": "6tn6-vc33"},
+                "hypertension": {"adult": "gj3i-hsbz", "measured": "va5e-efw9"},
+                "obesity": {"adult": "gj3i-hsbz", "measured": "be57-s94j", "child": "uzn2-cq9f"},
+                "nutrition": {"detailed": "8ekv-ep3s", "surveillance": "g4ie-h725"},
+                "functioning": {"adult": "gj3i-hsbz", "detailed": "btv3-srcc"},
+                "prescription drugs": {"adult": "gj3i-hsbz", "detailed": "kusj-ex57"},
+                "substance use": {"adult": "gj3i-hsbz", "students": "v3ih-gzx4"},
+                "emergency department": {"adult": "gj3i-hsbz", "visits": "e4ec-z5aa"},
+                "hospital visits": {"admissions": "4q35-rqzk", "adult": "gj3i-hsbz"},
+                "infectious diseases": {"surveillance": "v7tk-n6v3"},
+                "herpes": {"surveillance": "v7tk-n6v3"},
+                "infant mortality": {"surveillance": "j7ym-uwqy"},
+                "fetal mortality": {"surveillance": "wd75-kcmv"},
+                "low birthweight": {"surveillance": "rg3t-4dpf"}
+            }
+            
+            for topic, routes in essential_routes.items():
+                if topic not in TOPIC_ROUTES:
+                    TOPIC_ROUTES[topic] = {}
+                TOPIC_ROUTES[topic].update(routes)
+                print(f"✅ Fixed routing for {topic}")
+            
+            # COMPREHENSIVE DATASET METADATA FIXES
+            metadata_updates = {
+                "w26f-tf3h": {"topics": ["suicide", "mortality", "vital statistics", "death rates"]},
+                "36ue-xht5": {"topics": ["oral health", "dental care", "dental caries", "tooth loss", "teeth"]},
+                "h3hw-hzvg": {"topics": ["cancer", "cancer mortality", "death rates", "malignant neoplasms"]},
+                "rdjz-vn2n": {"topics": ["drug overdose", "mortality", "opioids", "substance abuse", "overdose deaths"]},
+                "7aq9-prdf": {"topics": ["heart disease", "heart disease mortality", "cardiovascular", "death rates"]},
+                "6tn6-vc33": {"topics": ["cholesterol", "high cholesterol", "hypercholesterolemia", "cardiovascular"]},
+                "va5e-efw9": {"topics": ["hypertension", "blood pressure", "high blood pressure", "cardiovascular"]},
+                "be57-s94j": {"topics": ["obesity", "overweight", "bmi", "weight status", "adults"]},
+                "uzn2-cq9f": {"topics": ["obesity", "childhood obesity", "children", "adolescents", "bmi"]},
+                "8ekv-ep3s": {"topics": ["nutrition", "diet", "dietary intake", "calcium", "fiber", "iron", "sodium"]},
+                "btv3-srcc": {"topics": ["functioning", "disability", "functional difficulties", "limitations"]},
+                "kusj-ex57": {"topics": ["prescription drugs", "medication", "drug use", "polypharmacy"]},
+                "v3ih-gzx4": {"topics": ["substance use", "alcohol", "smoking", "drugs", "students", "youth"]},
+                "e4ec-z5aa": {"topics": ["emergency department", "ed visits", "hospital visits", "diagnoses"]},
+                "4q35-rqzk": {"topics": ["hospital", "admissions", "outpatient", "surgery", "length of stay"]},
+                "v7tk-n6v3": {"topics": ["infectious diseases", "herpes", "hsv", "infections"]},
+                "j7ym-uwqy": {"topics": ["infant mortality", "neonatal", "postneonatal", "infant deaths"]},
+                "wd75-kcmv": {"topics": ["fetal mortality", "perinatal", "fetal deaths", "birth outcomes"]},
+                "rg3t-4dpf": {"topics": ["birth", "birthweight", "low birthweight", "birth outcomes"]},
+                "8miz-siyd": {"topics": ["healthcare capacity", "hospital beds", "healthcare resources"]},
+                "yib5-h3pw": {"topics": ["dentists", "dental workforce", "healthcare capacity"]},
+                "7siw-u4fz": {"topics": ["healthcare employment", "wages", "workforce", "healthcare capacity"]},
+                "s57w-7gbe": {"topics": ["healthcare spending", "national spending", "health expenditures"]},
+                "gu48-2cs8": {"topics": ["healthcare spending", "personal spending", "health costs"]}
+            }
+            
+            for dsid, updates in metadata_updates.items():
+                if dsid in DATASET_METADATA:
+                    current_topics = DATASET_METADATA[dsid].get("topics", [])
+                    new_topics = list(set(current_topics + updates["topics"]))
+                    DATASET_METADATA[dsid]["topics"] = new_topics
+                    print(f"✅ Enhanced {dsid} metadata with {len(updates['topics'])} topics")
+            
+            # COMPREHENSIVE KEYWORD FIXES  
+            essential_keywords = {
+                # Suicide keywords
+                "suicide": "suicide",
+                "suicidal": "suicide", 
+                "self-harm": "suicide",
+                "self harm": "suicide",
+                "suicide deaths": "suicide",
+                "suicide rates": "suicide",
+                
+                # Dental/Oral Health keywords
+                "dental": "dental care",
+                "dental care": "dental care",
+                "teeth": "dental care",
+                "tooth": "dental care",
+                "oral health": "oral health",
+                "dental caries": "oral health",
+                "caries": "oral health",
+                "tooth decay": "oral health",
+                "tooth loss": "oral health",
+                "dental exam": "dental care",
+                "dental cleaning": "dental care",
+                "dentist": "dental care",
+                
+                # Cancer keywords
+                "cancer": "cancer",
+                "malignant": "cancer",
+                "tumor": "cancer",
+                "breast cancer": "cancer",
+                "lung cancer": "cancer",
+                "prostate cancer": "cancer",
+                "cervical cancer": "cancer",
+                "skin cancer": "cancer",
+                "cancer deaths": "cancer",
+                
+                # Heart Disease keywords
+                "heart disease": "heart disease",
+                "heart attack": "heart disease",
+                "cardiac": "heart disease",
+                "coronary": "heart disease",
+                "cardiovascular": "heart disease",
+                "angina": "angina",
+                
+                # Drug Overdose keywords
+                "overdose": "drug overdose",
+                "drug overdose": "drug overdose",
+                "opioid": "drug overdose",
+                "heroin": "drug overdose",
+                "fentanyl": "drug overdose",
+                "overdose deaths": "drug overdose",
+                
+                # Cholesterol keywords
+                "cholesterol": "cholesterol",
+                "high cholesterol": "cholesterol",
+                "hypercholesterolemia": "cholesterol",
+                
+                # Hypertension keywords
+                "blood pressure": "hypertension",
+                "high blood pressure": "hypertension",
+                "hypertension": "hypertension",
+                "bp": "hypertension",
+                
+                # Obesity keywords
+                "obesity": "obesity",
+                "obese": "obesity",
+                "overweight": "overweight",
+                "bmi": "obesity",
+                "weight": "obesity",
+                
+                # Nutrition keywords
+                "nutrition": "nutrition",
+                "diet": "nutrition",
+                "dietary": "nutrition",
+                "calcium": "nutrition",
+                "fiber": "nutrition",
+                "iron": "nutrition",
+                "sodium": "nutrition",
+                "vitamin": "nutrition",
+                
+                # Functioning/Disability keywords
+                "disability": "functioning",
+                "functioning": "functioning",
+                "difficulty": "functioning",
+                "functional": "functioning",
+                
+                # Prescription Drug keywords
+                "prescription": "prescription drugs",
+                "medication": "prescription drugs", 
+                "drugs": "prescription drugs",
+                "medicines": "prescription drugs",
+                
+                # Substance Use keywords
+                "substance": "substance use",
+                "alcohol": "substance use",
+                "drinking": "substance use",
+                "smoking": "substance use",
+                "tobacco": "substance use",
+                
+                # Emergency/Hospital keywords
+                "emergency": "emergency department",
+                "er": "emergency department",
+                "ed": "emergency department",
+                "hospital": "hospital visits",
+                "admissions": "hospital visits",
+                
+                # Infectious Disease keywords
+                "infectious": "infectious diseases",
+                "herpes": "herpes",
+                "hsv": "herpes",
+                
+                # Mortality keywords
+                "infant mortality": "infant mortality",
+                "fetal mortality": "fetal mortality",
+                "death": "suicide",
+                "mortality": "suicide",
+                
+                # Birth keywords
+                "birth": "low birthweight",
+                "birthweight": "low birthweight",
+                "low birth weight": "low birthweight"
+            }
+            
+            for keyword, canonical in essential_keywords.items():
+                if keyword not in LOADED_KEYWORDS:
+                    LOADED_KEYWORDS[keyword] = canonical
+                    print(f"✅ Added keyword: {keyword} -> {canonical}")
+            
+            # COMPREHENSIVE DQS TOPIC MAPPING FIXES
+            dqs_mapping_updates = {
+                "suicide": "suicide-deaths",
+                "dental care": "dental-exam-or-cleaning",
+                "oral health": "total-dental-caries-in-permanent-teeth-in-adults",
+                "dental caries": "total-dental-caries-in-permanent-teeth-in-adults",
+                "tooth loss": "complete-tooth-loss",
+                "cancer": "any-cancer-type",
+                "breast cancer": "breast-cancer",
+                "prostate cancer": "prostate-cancer",
+                "cervical cancer": "cervical-cancer",
+                "skin cancer": "any-skin-cancer",
+                "heart disease": "coronary-heart-disease",
+                "heart attack": "heart-attackmyocardial-infarction",
+                "angina": "anginaangina-pectoris",
+                "drug overdose": "all-drug-overdose-deaths",
+                "opioid": "drug-overdose-deaths-involving-any-opioid",
+                "heroin": "drug-overdose-deaths-involving-heroin",
+                "cholesterol": "high-cholesterol-diagnosis-selfreported",
+                "high cholesterol": "high-cholesterol-total-measured",
+                "hypertension": "hypertension-diagnosis-selfreported",
+                "blood pressure": "hypertension-measured",
+                "obesity": "obesity-in-adults-selfreported",
+                "overweight": "overweight-or-obesity-bmi-greater-than-or-equal-to-250",
+                "calcium": "calcium-intake",
+                "fiber": "dietary-fiber-intake",
+                "iron": "iron-intake",
+                "sodium": "sodium-intake",
+                "vitamin d": "vitamin-d-intake",
+                "disability": "disability-status-composite",
+                "functioning": "functioning-difficulties-composite-threelevel",
+                "prescription drugs": "prescription-medication-use-among-adults",
+                "alcohol": "alcohol",
+                "smoking": "current-cigarette-smoking",
+                "emergency department": "hospital-emergency-department-visit",
+                "hospital": "hospital-admissions",
+                "herpes": "herpes-simplex-virus-type-1",
+                "infant mortality": "all-infant-deaths",
+                "fetal mortality": "all-fetal-deaths",
+                "low birthweight": "low-birthweight-live-births"
+            }
+            
+            for topic, slug in dqs_mapping_updates.items():
+                if topic not in DQS_TOPIC_MAPPING:
+                    DQS_TOPIC_MAPPING[topic] = slug
+                    print(f"✅ Added DQS mapping: {topic} -> {slug}")
+            
+            print(f"✅ COMPREHENSIVE FIXES COMPLETE!")
+            print(f"✅ Loaded {len(LOADED_KEYWORDS)} keywords")
+            print(f"✅ Loaded {len(DATASET_METADATA)} dataset entries")
+            print(f"✅ Configured {len(TOPIC_ROUTES)} topic routes")
+            print(f"✅ Configured {len(DQS_TOPIC_MAPPING)} DQS mappings")
+            
+        except Exception as e:
+            print(f"⚠ Error loading keywords: {e}")
+            LOADED_KEYWORDS = {}
+            DATASET_METADATA = {}
+            TOPIC_ROUTES = {}
+            DQS_TOPIC_MAPPING = {}
+            GROUPING_CATEGORIES = {}
+
+def extract_socrata_id_from_url(url: str) -> Optional[str]:
+    pats = [r'/resource/([a-z0-9\-]+)\.json', r'/resource/([a-z0-9\-]+)/?$', r'/d/([a-z0-9\-]+)/?']
+    for p in pats:
+        m = re.search(p, url or "")
+        if m: 
+            return m.group(1)
+    return None
+
+async def discover_dataset_structure(domain: str, dsid: str):
+    structure = {
+        "raw_fields": SOCRATA_API_FIELDS, 
+        "mapped_fields": {}, 
+        "available_values": {}, 
+        "sample_data": [], 
+        "discovery_log": [], 
+        "dqs_like": False
+    }
+    
+    try:
+        sample_url = f"https://{domain}/resource/{dsid}.json?$select=topic,`group`,subgroup,time_period,estimate,estimate_lci,estimate_uci&$where=topic IS NOT NULL AND estimate IS NOT NULL&$limit=10"
+        sample_data = await fetch(sample_url)
+        structure["sample_data"] = sample_data
+        
+        if not sample_data:
+            sample_url = f"https://{domain}/resource/{dsid}.json?$limit=10"
+            sample_data = await fetch(sample_url)
+            structure["sample_data"] = sample_data
+        
+        keys = set()
+        for r in sample_data:
+            if isinstance(r,dict): 
+                keys.update([k.lower() for k in r.keys()])
+        
+        required = {"topic","group","subgroup","time_period","estimate"}
+        structure["dqs_like"] = required.issubset(keys)
+        structure["mapped_fields"] = {
+            "indicator":"topic",
+            "grouping_category":"group",
+            "group_value":"subgroup",
+            "year":"time_period",
+            "value":"estimate"
+        }
+
+        av = {}
+        for logical, api_field in [("indicator","topic"),("grouping_category","group"),("group_value","subgroup"),("year","time_period")]:
+            try:
+                field = api_field if api_field!="group" else f"`{api_field}`"
+                urls_to_try = [
+                    f"https://{domain}/resource/{dsid}.json?$select={field}&$group={field}&$limit=1000",
+                    f"https://{domain}/resource/{dsid}.json?$select={field}&$group={field}&$limit=500"
+                ]
+                
+                vals = []
+                for url in urls_to_try:
+                    rows = await fetch(url)
+                    if rows:
+                        new_vals = [row.get(api_field) for row in rows if row.get(api_field)]
+                        vals.extend(new_vals)
+                        if len(vals) > 10:
+                            break
+                
+                av[logical] = sorted(set(str(v) for v in vals if v))
+                
+            except Exception as e:
+                print(f"⚠️ Error fetching {logical} for {dsid}: {e}")
+                av[logical] = []
+        
+        structure["available_values"] = av
+        structure["dqs_like"] = bool(structure["dqs_like"]) and bool(av.get("indicator")) and bool(av.get("group_value"))
+        
+        # Special logging for key datasets
+        key_datasets = ["w26f-tf3h", "36ue-xht5", "h3hw-hzvg", "rdjz-vn2n", "7aq9-prdf"]
+        if dsid in key_datasets:
+            print(f"📊 {dsid}: DQS-like={structure['dqs_like']}, indicators={len(av.get('indicator', []))}")
+    
+    except Exception as e:
+        print(f"⚠ Error discovering structure for {dsid}: {e}")
+        structure["dqs_like"] = False
+    
+    return structure
+
+async def load_and_map_catalog():
+    load_user_keywords()
+    catalog = {}
+    
+    if DATASET_METADATA:
+        print("📄 Loading from dqs_keywords.json")
+        for dsid, metadata in DATASET_METADATA.items():
+            if metadata.get("domain") == "data.cdc.gov":
+                catalog[dsid] = {
+                    "domain": metadata["domain"],
+                    "label": metadata["name"],
+                    "api_url": f"https://data.cdc.gov/resource/{dsid}.json",
+                    "description": metadata.get("description", metadata["name"]),
+                    "target_population": [metadata.get("population", "general")],
+                    "age_range": metadata.get("age_range", "all ages"),
+                    "data_source": metadata.get("data_source", "CDC"),
+                    "topics": metadata.get("topics", []),
+                    "structure": None,
+                    "dqs_like": False
+                }
+    
+    if os.path.exists(CAT_PATH):
+        try:
+            with open(CAT_PATH,"r",encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    url = None
+                    label = None
+                    for col,val in row.items():
+                        if val and ('http' in val or 'data.cdc.gov' in val): 
+                            url = val.strip()
+                        elif val and not label and len(val.strip())>3: 
+                            label = val.strip()
+                    if url and label:
+                        dsid = extract_socrata_id_from_url(url)
+                        if dsid and dsid not in catalog:
+                            catalog[dsid] = {
+                                "domain":"data.cdc.gov",
+                                "label": label,
+                                "api_url": f"https://data.cdc.gov/resource/{dsid}.json",
+                                "description": label,
+                                "target_population": (["adults","18+","adult"] if "adult" in label.lower() else (["children","kids","child"] if "child" in label.lower() else ["general"])),
+                                "structure": None,
+                                "dqs_like": False
+                            }
+        except Exception as e:
+            print(f"⚠️ Could not load CSV catalog: {e}")
+
+    print(f"📊 Total datasets to check: {len(catalog)}")
+
+    for dsid, info in list(catalog.items()):
+        struct = await discover_dataset_structure(info["domain"], dsid)
+        info["structure"] = struct
+        info["dqs_like"] = bool(struct.get("dqs_like"))
+        inds = struct.get("available_values",{}).get("indicator",[]) or []
+        info["available_indicators"] = inds
+
+    filtered = {}
+    for k,v in catalog.items():
+        struct = v.get("structure",{})
+        av = struct.get("available_values",{})
+        if v.get("dqs_like") and av.get("indicator") and av.get("group_value"):
+            filtered[k]=v
+    catalog = filtered
+
+    allow = [x.strip() for x in DQS_ALLOWED_DATASETS.split(",") if x.strip()]
+    if allow:
+        catalog = {k:v for k,v in catalog.items() if k in allow}
+
+    print(f"✅ Final catalog size: {len(catalog)} DQS-compatible datasets")
+    return catalog
+
+def find_canonical_topic(query_text: str) -> str:
+    if not LOADED_KEYWORDS:
+        return ""
+    
+    query_lower = query_text.lower().strip()
+    
+    # Exact word matching first
+    query_words = query_lower.split()
+    for word in query_words:
+        if word in LOADED_KEYWORDS:
+            canonical = LOADED_KEYWORDS[word]
+            print(f"🎯 Found exact word: '{word}' -> '{canonical}'")
+            return canonical
+    
+    # Substring matching
+    best_match = ""
+    longest_match = 0
+    
+    for keyword, canonical in LOADED_KEYWORDS.items():
+        if keyword in query_lower:
+            if len(keyword) > longest_match:
+                best_match = canonical
+                longest_match = len(keyword)
+    
+    if best_match:
+        print(f"🎯 Found substring: '{best_match}'")
+        return best_match
+    
+    # Token overlap matching
+    query_tokens = set(tokenize(query_text))
+    best_score = 0
+    
+    for keyword, canonical in LOADED_KEYWORDS.items():
+        keyword_tokens = set(tokenize(keyword))
+        overlap = len(query_tokens & keyword_tokens)
+        if overlap > best_score and overlap > 0:
+            best_score = overlap
+            best_match = canonical
+    
+    if best_match:
+        print(f"🎯 Found token overlap: '{best_match}'")
+    
+    return best_match
+
+def get_relevant_datasets_for_topic(canonical_topic: str) -> List[str]:
+    if not TOPIC_ROUTES or not canonical_topic:
+        return []
+    
+    topic_data = TOPIC_ROUTES.get(canonical_topic, {})
+    if isinstance(topic_data, dict):
+        dataset_ids = list(topic_data.values())
+        print(f"📊 Found datasets for '{canonical_topic}': {dataset_ids}")
+        return dataset_ids
+    
+    return []
+
+def _indicator_best_with_score(query: str, available_indicators: List[str]):
+    if not available_indicators: 
+        return (None, -1)
+    
+    ql = query.lower()
+    qtokens = set(tokenize(query))
+    best, score_best = None, -1
+    
+    children_keywords = ["children", "child", "kids", "pediatric", "childhood", "youth"]
+    is_children_query = any(kw in ql for kw in children_keywords)
+    
+    canonical_topic = find_canonical_topic(query)
+    
+    # Enhanced keyword matching for specific topics
+    dental_terms = ["dental", "teeth", "tooth", "caries", "oral", "dentist", "periodontal", "gum", "cleaning", "exam"]
+    suicide_terms = ["suicide", "suicidal", "self-harm", "self harm", "suicide rate", "death", "mortality"]
+    flu_terms = ["flu shot", "flu vaccine", "influenza vaccine", "influenza vaccination", "seasonal flu", "flu", "influenza"]
+    cancer_terms = ["cancer", "malignant", "tumor", "breast", "lung", "prostate", "cervical", "skin"]
+    heart_terms = ["heart", "cardiac", "coronary", "cardiovascular", "heart attack", "angina"]
+    overdose_terms = ["overdose", "drug overdose", "opioid", "heroin", "fentanyl"]
+    
+    is_dental_query = any(term in ql for term in dental_terms)
+    is_suicide_query = any(term in ql for term in suicide_terms)
+    is_cancer_query = any(term in ql for term in cancer_terms)
+    is_heart_query = any(term in ql for term in heart_terms)
+    is_overdose_query = any(term in ql for term in overdose_terms)
+    
+    for ind in available_indicators:
+        il = ind.lower()
+        s = 0
+        
+        is_children_indicator = any(kw in il for kw in children_keywords)
+        
+        # Topic-specific scoring
+        if is_dental_query:
+            if any(term in il for term in dental_terms):
+                s += 60
+                if "caries" in ql and "caries" in il:
+                    s += 40
+                if "dental" in ql and "dental" in il:
+                    s += 30
+                if "tooth" in ql and "tooth" in il:
+                    s += 25
+        
+        elif is_suicide_query:
+            if any(term in il for term in suicide_terms):
+                s += 60
+                if "suicide" in ql and "suicide" in il:
+                    s += 40
+                if "death" in ql and "death" in il:
+                    s += 30
+        
+        elif is_cancer_query:
+            if any(term in il for term in cancer_terms):
+                s += 50
+                if "cancer" in ql and "cancer" in il:
+                    s += 30
+        
+        elif is_heart_query:
+            if any(term in il for term in heart_terms):
+                s += 50
+                if "heart" in ql and "heart" in il:
+                    s += 30
+        
+        elif is_overdose_query:
+            if any(term in il for term in overdose_terms):
+                s += 60
+                if "overdose" in ql and "overdose" in il:
+                    s += 40
+        
+        elif canonical_topic and canonical_topic.lower() in il:
+            s += 50
+        
+        elif any(term in ql for term in flu_terms):
+            if any(term in il for term in ["influenza", "flu"]) and "pneumo" not in il:
+                s += 40
+                if any(vacc_term in il for vacc_term in ["vaccin", "immun", "shot"]):
+                    s += 20
+                if is_children_query and is_children_indicator:
+                    s += 25
+                elif is_children_query and not is_children_indicator:
+                    s -= 15
+        
+        # Keyword mapping bonus
+        if LOADED_KEYWORDS:
+            for keyword, canonical in LOADED_KEYWORDS.items():
+                if keyword in ql and canonical.lower() in il:
+                    s += 25
+        
+        # Token matching (excluding topic-specific cases)
+        if not any([is_dental_query, is_suicide_query, is_cancer_query, is_heart_query, is_overdose_query]):
+            for t in qtokens:
+                if len(t)>=4 and t in il: 
+                    s += 5
+            if ql in il: 
+                s += 8
+        
+        # Population matching
+        if is_children_query and is_children_indicator:
+            s += 15
+        elif is_children_query and not is_children_indicator:
+            s -= 10
+        
+        if s > score_best:
+            best, score_best = ind, s
+    
+    return best, score_best
+
+def select_best_dataset(query: str, catalog: Dict[str, Any]):
+    if not catalog: 
+        return None
+    
+    ql = query.lower()
+    
+    children_keywords = ["children", "child", "kids", "pediatric", "childhood", "youth"]
+    is_children_query = any(kw in ql for kw in children_keywords)
+    
+    canonical_topic = find_canonical_topic(query)
+    if canonical_topic:
+        relevant_dataset_ids = get_relevant_datasets_for_topic(canonical_topic)
+        if relevant_dataset_ids:
+            filtered_catalog = {dsid: info for dsid, info in catalog.items() if dsid in relevant_dataset_ids}
+            if filtered_catalog:
+                catalog = filtered_catalog
+                print(f"🎯 Filtered to {len(catalog)} relevant datasets for '{canonical_topic}'")
+    
+    qtokens = set(tokenize(query))
+    scores = {}
+    
+    # Enhanced topic detection
+    vaccination_terms = ["flu", "influenza", "vaccine", "vaccination", "shot", "immunization"]
+    dental_terms = ["dental", "teeth", "tooth", "caries", "oral", "dentist"]
+    suicide_terms = ["suicide", "suicidal", "self-harm", "self harm", "death"]
+    cancer_terms = ["cancer", "malignant", "tumor", "breast", "lung", "prostate"]
+    heart_terms = ["heart", "cardiac", "coronary", "cardiovascular"]
+    overdose_terms = ["overdose", "drug overdose", "opioid", "heroin"]
+    
+    is_vaccination_query = any(term in ql for term in vaccination_terms)
+    is_dental_query = any(term in ql for term in dental_terms)
+    is_suicide_query = any(term in ql for term in suicide_terms)
+    is_cancer_query = any(term in ql for term in cancer_terms)
+    is_heart_query = any(term in ql for term in heart_terms)
+    is_overdose_query = any(term in ql for term in overdose_terms)
+    
+    for dsid, info in catalog.items():
+        inds = info.get("available_indicators",[]) or []
+        label_lower = info.get("label","").lower()
+        topics = info.get("topics", [])
+        
+        topic_relevance = 0
+        
+        # Canonical topic bonus
+        if canonical_topic and dsid in get_relevant_datasets_for_topic(canonical_topic):
+            topic_relevance += 70
+            
+            # Specialist dataset bonus
+            if any(specialist in label_lower for specialist in ["oral health", "suicide", "mental health", "cardiovascular", "nutrition"]):
+                topic_relevance += 50
+            elif any(general in label_lower for general in ["summary health", "chronic disease indicators"]):
+                topic_relevance += 15
+        
+        # Topic-specific dataset matching
+        if is_dental_query:
+            if "oral health" in label_lower or "dental" in label_lower:
+                topic_relevance += 80
+            elif any(term in topics for term in ["oral health", "dental care", "dental caries"]):
+                topic_relevance += 70
+            elif "summary health" in label_lower:
+                topic_relevance -= 20
+                
+        elif is_suicide_query:
+            if "suicide" in label_lower or "mortality" in label_lower or "vital statistics" in label_lower:
+                topic_relevance += 90
+            elif any(term in topics for term in ["suicide", "mortality", "death rates"]):
+                topic_relevance += 80
+            elif "summary health" in label_lower:
+                topic_relevance -= 30
+        
+        elif is_cancer_query:
+            if "cancer" in label_lower or "mortality" in label_lower:
+                topic_relevance += 80
+            elif any(term in topics for term in ["cancer", "cancer mortality"]):
+                topic_relevance += 70
+        
+        elif is_heart_query:
+            if "heart" in label_lower or "cardiovascular" in label_lower:
+                topic_relevance += 80
+            elif any(term in topics for term in ["heart disease", "cardiovascular"]):
+                topic_relevance += 70
+        
+        elif is_overdose_query:
+            if "drug" in label_lower or "overdose" in label_lower or "mortality" in label_lower:
+                topic_relevance += 80
+            elif any(term in topics for term in ["drug overdose", "opioids", "substance use"]):
+                topic_relevance += 70
+        
+        elif is_vaccination_query:
+            vaccination_indicators = [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])]
+            if vaccination_indicators:
+                topic_relevance += 60
+                if is_children_query:
+                    children_vacc_indicators = [ind for ind in vaccination_indicators if any(kw in ind.lower() for kw in children_keywords)]
+                    if children_vacc_indicators:
+                        topic_relevance += 30
+            elif any(term in label_lower for term in vaccination_terms):
+                topic_relevance += 40
+            else:
+                topic_relevance -= 20
+        
+        # Indicator matching
+        indicator_match = 0
+        topic_specific_indicators = []
+        
+        if is_dental_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in dental_terms)]
+        elif is_suicide_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in suicide_terms)]
+        elif is_cancer_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in cancer_terms)]
+        elif is_heart_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in heart_terms)]
+        elif is_overdose_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in overdose_terms)]
+        
+        if topic_specific_indicators:
+            indicator_match += 40
+        else:
+            # General indicator matching
+            for ind in inds:
+                il = str(ind).lower()
+                if il in ql or ql in il: 
+                    indicator_match = max(indicator_match, 20)
+                elif any(t for t in qtokens if len(t)>=4 and t in il): 
+                    indicator_match = max(indicator_match, 15)
+        
+        # Population matching
+        population_match = 0
+        if is_children_query:
+            if any(x in label_lower for x in ["child", "children", "kids", "pediatric", "youth"]):
+                population_match += 20
+            elif any(x in label_lower for x in ["adult", "adults", "18+"]):
+                population_match -= 15
+        else:
+            if any(x in ql for x in ["adult","adults","18+"]): 
+                if "adult" in label_lower: 
+                    population_match += 15
+            elif not is_children_query:
+                if "adult" in label_lower: 
+                    population_match += 8
+        
+        final_score = topic_relevance + indicator_match + population_match
+        scores[dsid] = final_score
+        
+        if dsid in ["w26f-tf3h", "36ue-xht5", "h3hw-hzvg", "rdjz-vn2n"]:
+            print(f"📊 {dsid}: relevance={topic_relevance}, indicator={indicator_match}, pop={population_match}, final={final_score}")
+    
+    if not scores:
+        return None
+        
+    best_dsid = max(scores.items(), key=lambda kv: kv[1])[0]
+    best_score = scores[best_dsid]
+    print(f"🏆 Best dataset: {best_dsid} (score: {best_score})")
+    return best_dsid
+
+def detect_grouping(query: str, structure: Dict[str, Any]):
+    av = structure.get("available_values",{})
+    groups = av.get("grouping_category",[]) or []
+    subgroups = av.get("group_value",[]) or []
+    ql = query.lower()
+    
+    if GROUPING_CATEGORIES:
+        for category_name, category_data in GROUPING_CATEGORIES.items():
+            for key, value in category_data.items():
+                if key in ql:
+                    g = next((x for x in groups if value.lower() in x.lower() or x.lower() in value.lower()), None)
+                    if g:
+                        return g, None, False
+    
+    GROUPING_KEYWORDS = {
+        "sex": "Sex", "gender":"Sex",
+        "male": ("Sex","Male"), "female": ("Sex","Female"),
+        "men": ("Sex","Male"), "women": ("Sex","Female"),
+        "race": "Race and Hispanic origin group",
+        "ethnicity": "Race and Hispanic origin group",
+        "origin": "Race and Hispanic origin group",
+        "age": "Age group", "age group":"Age group",
+        "education": "Education", "income":"Income", "poverty":"Federal poverty level",
+        "state": "State or territory", "region":"Region",
+        "urban":"Urbanization level","metro":"Urbanization level",
+        "veteran":"Veteran status","marital":"Marital status","insurance":"Health insurance coverage"
+    }
+    
+    for kw, mapping in GROUPING_KEYWORDS.items():
+        if kw in ql:
+            if isinstance(mapping, tuple):
+                g_name, sg_name = mapping
+                g = next((x for x in groups if g_name.lower() in x.lower()), None)
+                sg = next((x for x in subgroups if sg_name.lower() in x.lower()), None)
+                return g, sg, True
+            else:
+                g = next((x for x in groups if mapping.lower() in x.lower() or x.lower() in mapping.lower()), None)
+                if g: 
+                    return g, None, False
+    
+    for sg in subgroups:
+        toks=set(tokenize(sg))
+        if toks and toks.issubset(set(tokenize(query))):
+            g = None
+            for cand in groups:
+                gl=cand.lower()
+                if any(k in gl for k in ["sex","gender"]) and any(w in ql for w in ["male","female","men","women"]): 
+                    g=cand
+                    break
+                if any(k in gl for k in ["race","hispanic","origin","ethnic"]) and any(w in ql for w in ["white","black","asian","hispanic","latino"]): 
+                    g=cand
+                    break
+                if "state" in gl and "state" in ql: 
+                    g=cand
+                    break
+            return g, sg, True
+    return None, None, False
+
+def detect_year(query: str):
+    m = re.search(r"\b(20\d{2}|19\d{2})\b", query or "")
+    if m: 
+        return m.group(1)
+    return None
+
+def detect_two_groupings(query: str, structure: Dict[str, Any]) -> list:
+    q = (query or "").lower()
+    av = (structure or {}).get("available_values", {}) if structure else {}
+    avail = [str(g) for g in (av.get("grouping_category", []) or [])]
+
+    synonym_sets = {
+        "race": ["race", "hispanic", "ethnicity", "origin"],
+        "sex": ["sex", "gender", "male", "female", "men", "women", "sex at birth"],
+        "age": ["age", "ages", "age group", "age groups"],
+        "education": ["education", "educational", "attainment"],
+        "state or territory": ["state", "territory", "state or territory"],
+        "geographic characteristic": ["geographic", "geography", "region", "regions", "urban", "rural", "metro", "nonmetropolitan"],
+    }
+    hits = []
+    for canon, kws in synonym_sets.items():
+        pos = None
+        for kw in kws:
+            i = q.find(kw)
+            if i != -1:
+                pos = i if pos is None else min(pos, i)
+        if pos is not None:
+            label = None
+            cl = canon.lower()
+            for g in avail:
+                gl = g.lower()
+                if cl in gl or gl in cl:
+                    label = g
+                    break
+            if label:
+                hits.append((pos, label))
+    hits.sort(key=lambda t: t[0])
+    result = []
+    for _, label in hits:
+        if label not in result:
+            result.append(label)
+    return result[:2]
+
+def build_dqs_query_url(domain: str, dsid: str, **filters):
+    where = []
+    if filters.get("indicator"):
+        val = str(filters["indicator"]).replace("'", "''")
+        where.append(f"topic='{val}'")
+    if filters.get("grouping_category"):
+        val = str(filters["grouping_category"]).replace("'", "''")
+        where.append(f"`group`='{val}'")
+    if filters.get("group_value"):
+        val = str(filters["group_value"]).replace("'", "''")
+        where.append(f"subgroup='{val}'")
+    if filters.get("year"):
+        val = str(filters["year"]).replace("'", "''")
+        where.append(f"time_period='{val}'")
+    
+    select = ",".join([
+        "topic","`group`","subgroup","time_period","estimate","standard_error","estimate_lci","estimate_uci","flag","footnote_id_list"
+    ])
+    
+    # Increase limit for mortality datasets to get all years
+    limit = PAGE_LIMIT
+    if dsid in ["w26f-tf3h", "rdjz-vn2n", "h3hw-hzvg", "7aq9-prdf"]:  # mortality datasets
+        limit = 10000
+    
+    params = {"$select": select, "$limit": str(limit), "$order":"time_period DESC, subgroup"}
+    if where: 
+        params["$where"]=" AND ".join(where)
+    return f"https://{domain}/resource/{dsid}.json?" + urllib.parse.urlencode(params)
+
+async def get_catalog():
+    global CATALOG
+    if not hasattr(get_catalog, 'CATALOG') or not get_catalog.CATALOG:
+        get_catalog.CATALOG = await load_and_map_catalog()
+    return get_catalog.CATALOG
+
+async def process_nlq_query(query: str):
+    catalog = await get_catalog()
+    
+    requested_groups = []
+    grp_unavailable = []
+    
+    if not catalog: 
+        return {
+            "error": "Sorry, we couldn't find any health data to search. This might mean the data files aren't set up correctly. Please contact support or try again later.", 
+            "requested_groups": requested_groups, 
+            "unavailable_requested_groups": grp_unavailable
+        }
+
+    canonical_topic = find_canonical_topic(query)
+    print(f"🔍 Query: '{query}' -> Canonical topic: '{canonical_topic}'")
+
+    dsid = select_best_dataset(query, catalog)
+    info = catalog.get(dsid)
+    if not info: 
+        error_msg = "Sorry, we couldn't find a health dataset that matches your question."
+        
+        if canonical_topic:
+            relevant_datasets = get_relevant_datasets_for_topic(canonical_topic)
+            if relevant_datasets:
+                missing_datasets = [ds for ds in relevant_datasets if ds not in catalog]
+                if missing_datasets:
+                    error_msg += f" We found that '{canonical_topic}' data should be in datasets {missing_datasets}, but these datasets aren't currently available or compatible."
+                else:
+                    error_msg += f" We found the topic '{canonical_topic}' but couldn't match it to available datasets."
+            else:
+                error_msg += f" We identified the topic as '{canonical_topic}' but no datasets are configured for this topic."
+        else:
+            error_msg += " We couldn't identify a specific health topic from your question."
+        
+        error_msg += " Try asking about common health topics like diabetes, heart disease, or mental health."
+        
+        return {
+            "error": error_msg,
+            "canonical_topic": canonical_topic,
+            "loaded_keywords_count": len(LOADED_KEYWORDS),
+            "available_datasets": list(catalog.keys()),
+            "relevant_datasets": get_relevant_datasets_for_topic(canonical_topic) if canonical_topic else []
+        }
+    
+    structure = info["structure"]
+    available_indicators = info.get("available_indicators", [])
+
+    best_ind, best_score = _indicator_best_with_score(query, available_indicators)
+    print(f"🎯 Best indicator: '{best_ind}' (score: {best_score})")
+    
+    dataset_content_issue = False
+    if canonical_topic:
+        expected_terms = []
+        if canonical_topic == "suicide":
+            expected_terms = ["suicide", "death", "mortality", "injury"]
+        elif canonical_topic == "dental care" or canonical_topic == "oral health":
+            expected_terms = ["dental", "oral", "teeth", "tooth", "caries"]
+        elif canonical_topic == "cancer":
+            expected_terms = ["cancer", "malignant", "tumor", "breast", "lung", "prostate"]
+        elif canonical_topic == "heart disease":
+            expected_terms = ["heart", "cardiac", "coronary", "cardiovascular"]
+        elif canonical_topic == "drug overdose":
+            expected_terms = ["overdose", "drug", "opioid", "heroin"]
+        
+        if expected_terms:
+            matching_indicators = [ind for ind in available_indicators if any(term in ind.lower() for term in expected_terms)]
+            non_matching_indicators = [ind for ind in available_indicators if not any(term in ind.lower() for term in expected_terms)]
+            
+            if not matching_indicators and non_matching_indicators:
+                dataset_content_issue = True
+                print(f"⚠️ DATASET CONTENT MISMATCH: Expected {canonical_topic} indicators but found: {non_matching_indicators[:3]}")
+    
+    # Lowered threshold for better matching
+    indicator = best_ind if (best_score is not None and best_score >= 8) else None
+
+    tmp = detect_grouping(query, structure)
+    if isinstance(tmp, tuple) and len(tmp) == 3: 
+        group, subgroup, subgroup_locked = tmp
+    else: 
+        group, subgroup, subgroup_locked = tmp[0], tmp[1], bool(tmp[1])
+
+    year = detect_year(query)
+
+    filters = {}
+    if indicator is None:
+        available_inds = info.get("available_indicators", [])
+        
+        if dataset_content_issue:
+            error_msg = f"**Dataset Content Issue**: We found the '{info.get('label')}' dataset for '{canonical_topic}', but it contains different data than expected."
+            error_msg += f" The dataset has indicators like '{available_inds[0] if available_inds else 'None'}' instead of {canonical_topic}-related data."
+            error_msg += f" This might be a data configuration issue. Please try a different search term or contact support."
+            
+            other_datasets = [ds for ds in catalog.keys() if ds != dsid][:3]
+            if other_datasets:
+                error_msg += f" You might also try searching in other available datasets: {', '.join(other_datasets)}."
+        else:
+            error_msg = create_enhanced_error_message(query)
+            
+            if canonical_topic:
+                error_msg += f" We found your topic ('{canonical_topic}') and selected the '{info.get('label')}' dataset, but couldn't find a matching indicator."
+                if available_inds:
+                    similar_inds = [ind for ind in available_inds[:5] if any(word in ind.lower() for word in query.lower().split() if len(word) > 3)]
+                    if similar_inds:
+                        error_msg += f" Similar indicators available: {', '.join(similar_inds[:3])}"
+        
+        return {
+            "query": query, 
+            "dataset_id": dsid, 
+            "dataset_info": info, 
+            "structure": structure,
+            "matches": {
+                "indicator": None, 
+                "grouping_category": None, 
+                "group_value": None, 
+                "year": year, 
+                "subgroup_locked": False
+            },
+            "filters_used": {}, 
+            "query_url": build_dqs_query_url(info["domain"], dsid),
+            "data_count": 0, 
+            "data": [],
+            "error": error_msg,
+            "canonical_topic": canonical_topic,
+            "available_indicators": available_inds[:10],
+            "best_score": best_score,
+            "dataset_content_issue": dataset_content_issue
+        }
+
+    if indicator: 
+        filters["indicator"]=indicator
+    if group: 
+        filters["grouping_category"]=group
+    if subgroup: 
+        filters["group_value"]=subgroup
+    if year: 
+        filters["year"]=year
+
+    requested_groups = detect_two_groupings(query, structure)
+    avail_groups = (structure or {}).get("available_values", {}).get("grouping_category", []) or []
+    grp_unavailable = []
+    if requested_groups:
+        for rg in requested_groups:
+            found = any(rg.lower() in str(ag).lower() for ag in avail_groups)
+            if not found:
+                grp_unavailable.append(rg)
+
+    url = build_dqs_query_url(info["domain"], dsid, **filters)
+    data = await fetch(url)
+
+    return {
+        "query": query,
+        "dataset_id": dsid,
+        "dataset_info": info,
+        "structure": structure,
+        "matches": {
+            "indicator": indicator, 
+            "grouping_category": group, 
+            "group_value": subgroup, 
+            "year": year, 
+            "subgroup_locked": subgroup_locked,
+            "requested_groups": requested_groups,
+            "unavailable_requested_groups": grp_unavailable
+        },
+        "filters_used": filters, 
+        "query_url": url, 
+        "data_count": len(data), 
+        "data": data,
+        "canonical_topic": canonical_topic
+    }
+
+def format_results_for_chart(res: Dict[str, Any]) -> Dict[str, Any]:
+    data = res.get("data", []) or []
+    out = dict(res)
+    m0 = res.get("matches", {}) or {}
+
+    def fnum(x):
+        try:
+            return float(str(x).replace("%","").replace(",",""))
+        except Exception:
+            return None
+
+    if not data:
+        out["chart_series"] = []
+        out["chart_description"] = "No chart available."
+        out["chart_summary"] = ""
+        out["smart_narrative"] = "**No data found** for this query."
+        return out
+
+    if not m0.get("grouping_category"):
+        _grp_total = [row for row in data if str(row.get("group","")).strip().lower() == "total"]
+        if _grp_total:
+            data = _grp_total
+        else:
+            _tot = {"total","overall","both sexes","all persons","all adults","all children","all"}
+            only = [row for row in data if str(row.get("subgroup","")).strip().lower() in _tot]
+            if only:
+                data = only
+
+    wanted_sg = (m0.get("group_value") or "").strip()
+    if m0.get("subgroup_locked") and wanted_sg:
+        data = [row for row in data if str(row.get("subgroup","")).strip().lower() == wanted_sg.lower()]
+
+    sm = {}
+    periods_set = set()
+    for row in data:
+        sg = str(row.get("subgroup","Overall"))
+        tp = str(row.get("time_period","Unknown"))
+        est, l, u = fnum(row.get("estimate")), fnum(row.get("estimate_lci")), fnum(row.get("estimate_uci"))
+        if est is None: 
+            continue
+        periods_set.add(tp)
+        sm.setdefault(sg,{})
+        sm[sg][tp] = {"estimate": est, "estimate_lci": l, "estimate_uci": u}
+
+    chart_series = []
+    for sg, tdict in sm.items():
+        pts = []
+        for tp, vals in sorted(tdict.items(), key=lambda kv: kv[0]):
+            d = {"time_period": tp, "estimate": vals["estimate"]}
+            if vals.get("estimate_lci") is not None: 
+                d["estimate_lci"] = vals["estimate_lci"]
+            if vals.get("estimate_uci") is not None: 
+                d["estimate_uci"] = vals["estimate_uci"]
+            pts.append(d)
+        chart_series.append({"label": sg, "points": pts})
+
+    out["chart_series"] = chart_series
+
+    narrative_parts = []
+    indicator = m0.get("indicator") or "the selected indicator"
+    group = m0.get("grouping_category") or "overall"
+    query = res.get("query", "")
+    
+    dqs_base = "https://nchsdata.cdc.gov/DQS/"
+    topic_slug = get_dqs_topic_slug(indicator, query, res.get("dataset_info"))
+    group_slug = get_dqs_group_slug(group) if group and group != "overall" else ""
+    year_param = str(m0.get("year") or "")
+    
+    # Special handling for drug overdose and suicide URLs
+    subtopic_param = ""
+    if "drug overdose" in indicator.lower() or "overdose" in indicator.lower():
+        if "all drug overdose" in indicator.lower():
+            subtopic_param = "all-drug-overdose-deaths"
+        elif "opioid" in indicator.lower():
+            subtopic_param = "drug-overdose-deaths-involving-any-opioid"
+        elif "heroin" in indicator.lower():
+            subtopic_param = "drug-overdose-deaths-involving-heroin"
+        else:
+            subtopic_param = "all-drug-overdose-deaths"
+    elif "suicide" in indicator.lower():
+        subtopic_param = "suicide-among-adults-aged-geq-18-years"
+    
+    dqs_url = f"{dqs_base}?topic={topic_slug}&subtopic={subtopic_param}&group={group_slug}&subgroup=&range={year_param}"
+    out["chart_dqs_url"] = dqs_url
+    
+    def fmt_ci(a, b):
+        try:
+            if a is not None and b is not None:
+                return f" (95% CI: {a:.1f}%-{b:.1f}%)"
+        except:
+            pass
+        return ""
+    
+    requested_groups = m0.get("requested_groups") or []
+    if len(requested_groups) >= 2:
+        first, second = requested_groups[0], requested_groups[1]
+        shown = group
+        narrative_parts.append(f"**Note:** You asked for data by {first.title()} and {second.title()}. Our health data shows one breakdown at a time, so we're currently showing data by **{shown}**.")
+        
+        btns = []
+        if first != shown.lower():
+            btns.append(f"<button onclick=\"setQuery('{indicator} by {first}');ask()\" class='switch-btn'>Show by {first.title()}</button>")
+        if second != shown.lower():
+            btns.append(f"<button onclick=\"setQuery('{indicator} by {second}');ask()\" class='switch-btn'>Show by {second.title()}</button>")
+        
+        if btns:
+            narrative_parts.append("<div class='switch-options'>" + " ".join(btns) + "</div>")
+
+    requested_year = m0.get("year")
+    periods = sorted(list(periods_set))
+    
+    if requested_year and len(periods) > 1:
+        narrative_parts.append(f"**About the Data:** You asked for {requested_year} data, but this dataset has information from multiple years ({', '.join(periods)}). The chart shows trends across all available years so you can see how things have changed over time.")
+    
+    grp_unavailable = m0.get("unavailable_requested_groups") or []
+    if not group or group == "overall":
+        if grp_unavailable:
+            narrative_parts.append(f"**Data Note:** You asked for information by **{grp_unavailable[0]}**, but this dataset doesn't break down the data that way. Instead, we're showing you the overall numbers for everyone.")
+        elif " by " in query.lower() and not requested_groups:
+            parts = query.lower().split(" by ")
+            if len(parts) > 1:
+                requested_demo = parts[-1].strip()
+                narrative_parts.append(f"**Data Note:** You asked for information by **{requested_demo}**, but this dataset doesn't break down the data that way. Instead, we're showing you the overall numbers for everyone.")
+        else:
+            narrative_parts.append(f"**What you're seeing:** Overall numbers for **{indicator}** across the entire population.")
+    else:
+        year_text = requested_year or ("all available years" if len(periods) > 1 else (periods[0] if periods else ""))
+        narrative_parts.append(f"**What you're seeing:** {indicator} broken down by **{group}** for {year_text}.")
+
+    if len(chart_series) > 1:
+        try:
+            all_estimates = []
+            for s in chart_series:
+                for pt in s.get("points", []):
+                    if pt.get("estimate") is not None:
+                        all_estimates.append({
+                            "group": s.get("label", "Unknown"),
+                            "year": pt.get("time_period", "Unknown"), 
+                            "estimate": pt["estimate"],
+                            "lci": pt.get("estimate_lci"),
+                            "uci": pt.get("estimate_uci")
+                        })
+            
+            if all_estimates:
+                highest = max(all_estimates, key=lambda x: x["estimate"])
+                lowest = min(all_estimates, key=lambda x: x["estimate"])
+                narrative_parts.append(f"**Key Findings:** The highest rate was **{highest['estimate']:.1f}%** for {highest['group']} in {highest['year']}{fmt_ci(highest['lci'], highest['uci'])}. The lowest rate was **{lowest['estimate']:.1f}%** for {lowest['group']} in {lowest['year']}{fmt_ci(lowest['lci'], lowest['uci'])}.")
+        except Exception:
+            pass
+
+    if wanted_sg and m0.get("subgroup_locked"):
+        focus_period = requested_year or (periods[-1] if periods else "")
+        focus_series = next((s for s in chart_series if (s.get("label") or "").lower() == wanted_sg.lower()), None)
+        if focus_series:
+            point = None
+            if focus_period:
+                point = next((p for p in focus_series.get("points", []) if p.get("time_period") == focus_period), None)
+            if point is None and focus_series.get("points"):
+                point = focus_series["points"][-1]
+            if point:
+                val = point.get("estimate")
+                lci = point.get("estimate_lci")
+                uci = point.get("estimate_uci")
+                if val is not None:
+                    period_label = focus_period or point.get("time_period")
+                    narrative_parts.append(f"**Specific Number:** For {wanted_sg} in {period_label}: **{val:.1f}%**{fmt_ci(lci, uci)}.")
+
+    narrative_parts.append(f"**About the Numbers:** The percentages show how common this health condition is. When you see ranges in parentheses, those show us how confident we can be in the numbers (95% confidence intervals).")
+    narrative_parts.append(f"**Want More Details?** [Click here for detailed analysis tools]({dqs_url}) where you can create custom charts and get more specific breakdowns.")
+    
+    out["smart_narrative"] = " ".join(narrative_parts)
+
+    year_text = (m0.get("year") or ("all available years" if len(periods)>1 else (periods[0] if periods else "")))
+    desc = f"This chart shows how common {indicator} is, broken down by {group} for {year_text}. The error bars show how confident we can be in these numbers."
+    desc += f" Click here for more detailed analysis tools: {dqs_url}"
+    out["chart_description"] = desc
+    out["chart_summary"] = ""
+
+    return out
+
+@app.post("/v1/nlq")
+async def nlq(body: Dict[str, Any] = Body(...)):
+    q = str(body.get("q","")).strip()
+    if not q: 
+        return JSONResponse({"error":"Please enter a health question to search for."}, status_code=400)
+    res = await process_nlq_query(q)
+    if "error" in res: 
+        return JSONResponse(res, status_code=400)
+    return format_results_for_chart(res)
+
+@app.get("/v1/keywords")
+async def keywords():
+    return {
+        "loaded_keywords": LOADED_KEYWORDS,
+        "dataset_metadata_count": len(DATASET_METADATA),
+        "topic_routes_count": len(TOPIC_ROUTES),
+        "dqs_topic_mapping_count": len(DQS_TOPIC_MAPPING),
+        "grouping_categories": GROUPING_CATEGORIES,
+        "sample_keywords": dict(list(LOADED_KEYWORDS.items())[:10]) if LOADED_KEYWORDS else {}
+    }
+
+@app.get("/v1/debug/match/{query}")
+async def debug_matching(query: str):
+    catalog = await get_catalog()
+    if not catalog:
+        return {"error": "No catalog available"}
+    
+    canonical_topic = find_canonical_topic(query)
+    relevant_datasets = get_relevant_datasets_for_topic(canonical_topic) if canonical_topic else []
+    
+    available_relevant = [ds for ds in relevant_datasets if ds in catalog]
+    missing_relevant = [ds for ds in relevant_datasets if ds not in catalog]
+    
+    children_keywords = ["children", "child", "kids", "pediatric", "childhood", "youth"]
+    is_children_query = any(kw in query.lower() for kw in children_keywords)
+    
+    vaccination_terms = ["flu", "influenza", "vaccine", "vaccination", "shot", "immunization"]
+    is_vaccination_query = any(term in query.lower() for term in vaccination_terms)
+    
+    dental_terms = ["dental", "teeth", "tooth", "caries", "oral", "dentist"]
+    is_dental_query = any(term in query.lower() for term in dental_terms)
+    
+    suicide_terms = ["suicide", "suicidal", "self-harm", "self harm"]
+    is_suicide_query = any(term in query.lower() for term in suicide_terms)
+    
+    dataset_scores = []
+    ql = query.lower()
+    
+    for dsid, info in catalog.items():
+        inds = info.get("available_indicators",[]) or []
+        label_lower = info.get("label","").lower()
+        
+        topic_relevance = 0
+        if canonical_topic and dsid in relevant_datasets:
+            topic_relevance += 60
+        
+        if is_vaccination_query:
+            vaccination_indicators = [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])]
+            if vaccination_indicators:
+                topic_relevance += 50
+        elif is_dental_query:
+            if "oral health" in label_lower:
+                topic_relevance += 80
+            elif any(term in label_lower for term in dental_terms):
+                topic_relevance += 50
+        elif is_suicide_query:
+            if "suicide" in label_lower or "injury" in label_lower or "vital statistics" in label_lower:
+                topic_relevance += 80
+        
+        dataset_scores.append({
+            "dataset_id": dsid,
+            "label": info.get("label"),
+            "topic_relevance": topic_relevance,
+            "indicator_count": len(inds),
+            "in_relevant_datasets": dsid in relevant_datasets,
+            "topics": info.get("topics", []),
+            "vaccination_indicators": [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])],
+            "dental_indicators": [ind for ind in inds if any(term in ind.lower() for term in dental_terms)],
+            "suicide_indicators": [ind for ind in inds if any(term in ind.lower() for term in suicide_terms)]
+        })
+    
+    dataset_scores.sort(key=lambda x: x["topic_relevance"], reverse=True)
+    
+    dsid = select_best_dataset(query, catalog)
+    info = catalog.get(dsid)
+    if not info:
+        return {"error": "No dataset selected"}
+    
+    available_indicators = info.get("available_indicators", [])
+    
+    best_ind, best_score = _indicator_best_with_score(query, available_indicators)
+    
+    scores = []
+    for ind in available_indicators:
+        score = _indicator_best_with_score(query, [ind])[1]
+        scores.append({"indicator": ind, "score": score})
+    
+    scores.sort(key=lambda x: x["score"], reverse=True)
+    
+    dqs_topic = get_dqs_topic_slug(best_ind or "", query, info) if best_ind else "N/A"
+    
+    return {
+        "query": query,
+        "query_analysis": {
+            "is_children_query": is_children_query,
+            "is_vaccination_query": is_vaccination_query,
+            "is_dental_query": is_dental_query,
+            "is_suicide_query": is_suicide_query
+        },
+        "canonical_topic_analysis": {
+            "canonical_topic": canonical_topic,
+            "relevant_datasets_for_topic": relevant_datasets,
+            "available_relevant_datasets": available_relevant,
+            "missing_relevant_datasets": missing_relevant
+        },
+        "dataset_scores": dataset_scores[:8],
+        "selected_dataset": {
+            "id": dsid,
+            "label": info.get("label"),
+            "target_population": info.get("target_population", [])
+        },
+        "indicator_matching": {
+            "best_match": {
+                "indicator": best_ind,
+                "score": best_score,
+                "dqs_topic": dqs_topic
+            },
+            "all_scores": scores[:10],
+            "total_indicators": len(available_indicators)
+        },
+        "keywords_status": {
+            "keywords_loaded": len(LOADED_KEYWORDS) > 0,
+            "total_keywords": len(LOADED_KEYWORDS),
+            "sample_keywords": dict(list(LOADED_KEYWORDS.items())[:5]) if LOADED_KEYWORDS else {}
+        },
+        "catalog_info": {
+            "total_datasets": len(catalog),
+            "dataset_ids": list(catalog.keys())
+        }
+    }
+
+@app.get("/v1/catalog/debug")
+async def debug_catalog():
+    catalog = await get_catalog()
+    debug_info = {
+        "catalog_size": len(catalog), 
+        "datasets": {},
+        "all_indicators": [],
+        "vaccination_indicators": [],
+        "flu_indicators": [],
+        "pneumo_indicators": [],
+        "keywords_status": {
+            "loaded_keywords_count": len(LOADED_KEYWORDS),
+            "dataset_metadata_count": len(DATASET_METADATA),
+            "topic_routes_count": len(TOPIC_ROUTES),
+            "dqs_mapping_count": len(DQS_TOPIC_MAPPING),
+            "grouping_categories_count": len(GROUPING_CATEGORIES)
+        }
+    }
+    
+    all_indicators = []
+    for k, v in catalog.items():
+        indicators = v.get("available_indicators", [])
+        all_indicators.extend(indicators)
+        
+        debug_info["datasets"][k] = {
+            "label": v.get("label"),
+            "dqs_like": v.get("dqs_like"),
+            "indicator_count": len(indicators), 
+            "has_groups": bool(v.get("structure",{}).get("available_values",{}).get("group_value")),
+            "sample_indicators": indicators[:5]
+        }
+    
+    debug_info["all_indicators"] = sorted(set(all_indicators))
+    
+    for ind in all_indicators:
+        ind_lower = ind.lower()
+        if any(term in ind_lower for term in ["vaccin", "immun", "shot"]):
+            debug_info["vaccination_indicators"].append(ind)
+        if any(term in ind_lower for term in ["flu", "influenza"]):
+            debug_info["flu_indicators"].append(ind)
+        if any(term in ind_lower for term in ["pneumo", "pneumonia"]):
+            debug_info["pneumo_indicators"].append(ind)
+    
+    return debug_info
+
+@app.get("/__version")
+def version(): 
+    return {"name": APP_NAME, "version": APP_VERSION, "file": __file__}
+
+@app.get("/__whoami")
+def whoami():
+    import os
+    return {"pid": os.getpid(), "cwd": os.getcwd(), "file": __file__}
+
+# Health check endpoint for Railway
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "message": "CDC Health Data API is running"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8040))
+    print("✅ CDC Health Data Question System Ready for Railway!")
+    print("🔗 Ask questions in plain English about health topics")
+    print("🎨 User-friendly interface with helpful error messages")
+    print("📊 Easy-to-understand charts and explanations")
+    print("🗂️ Uses dqs_keywords.json for enhanced matching!")
+    print("🔧 COMPREHENSIVE TOPIC FIXES APPLIED!")
+    print(f"🚀 Starting on port {port}")
+    print("🌍 Railway deployment ready!")
+    print("📄 Required: dqs_catalog.csv and dqs_keywords.json files")
+    
+    uvicorn.run(app, host="0.0.0.0", port=port)

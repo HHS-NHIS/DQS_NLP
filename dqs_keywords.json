@@ -1,0 +1,984 @@
+{
+  "topic_routes": {
+    "diabetes": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "asthma": {
+      "adult": "gj3i-hsbz", 
+      "child": "7ctq-myvs",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "heart disease": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs", 
+      "cardiovascular": "6tn6-vc33",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "hypertension": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "cardiovascular": "6tn6-vc33",
+      "measured": "pket-re4s",
+      "detailed": "va5e-efw9",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "cancer": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "surveillance": "g4ie-h725", 
+      "places": "eav7-hnsx",
+      "mortality": "h3hw-hzvg"
+    },
+    "obesity": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "measured_adult": "be57-s94j",
+      "measured_child": "uzn2-cq9f",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx",
+      "nutrition": "pket-re4s"
+    },
+    "depression": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs", 
+      "mental_health": "d89q-62iu",
+      "surveillance": "g4ie-h725"
+    },
+    "anxiety": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "mental_health": "d89q-62iu", 
+      "surveillance": "g4ie-h725"
+    },
+    "suicide": {
+      "adult": "w26f-tf3h",
+      "surveillance": "g4ie-h725",
+      "injury": "v7tk-n6v3"
+    },
+    "stroke": {
+      "adult": "gj3i-hsbz",
+      "cardiovascular": "6tn6-vc33",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "arthritis": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "copd": {
+      "adult": "gj3i-hsbz", 
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "kidney disease": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725"
+    },
+    "smoking": {
+      "adult": "gj3i-hsbz",
+      "tobacco": "v3ih-gzx4",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx"
+    },
+    "alcohol": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx",
+      "substance": "v3ih-gzx4"
+    },
+    "physical activity": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725",
+      "places": "eav7-hnsx",
+      "nutrition": "pket-re4s"
+    },
+    "sleep": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725"
+    },
+    "influenza vaccination": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "vaccination": "s57w-7gbe",
+      "surveillance": "g4ie-h725"
+    },
+    "pneumococcal vaccination": {
+      "adult": "gj3i-hsbz",
+      "vaccination": "s57w-7gbe",
+      "surveillance": "g4ie-h725"
+    },
+    "covid vaccination": {
+      "adult": "gj3i-hsbz",
+      "vaccination": "uzn2-cq9f",
+      "surveillance": "g4ie-h725"
+    },
+    "healthcare access": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "surveillance": "g4ie-h725"
+    },
+    "doctor visits": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs"
+    },
+    "emergency department": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "visits": "e4ec-z5aa"
+    },
+    "health insurance": {
+      "adult": "gj3i-hsbz", 
+      "child": "7ctq-myvs",
+      "surveillance": "g4ie-h725"
+    },
+    "dental care": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "oral_health": "36ue-xht5"
+    },
+    "chronic pain": {
+      "adult": "gj3i-hsbz",
+      "surveillance": "g4ie-h725"
+    },
+    "adhd": {
+      "child": "7ctq-myvs",
+      "disability": "j7ym-uwqy"
+    },
+    "birth defects": {
+      "child": "va5e-efw9",
+      "birth_surveillance": "gu48-2cs8"
+    },
+    "maternal health": {
+      "pregnancy": "w26f-tf3h",
+      "birth_surveillance": "gu48-2cs8"
+    },
+    "std": {
+      "adult": "kusj-ex57",
+      "surveillance": "pjb2-jvdr"
+    },
+    "hiv": {
+      "adult": "p4r5-qsgs",
+      "surveillance": "8miz-siyd"
+    },
+    "tuberculosis": {
+      "surveillance": "rg3t-4dpf"
+    },
+    "foodborne illness": {
+      "surveillance": "v3ih-gzx4"
+    },
+    "environmental health": {
+      "tracking": "6tn6-vc33",
+      "air_quality": "rdjz-vn2n"
+    },
+    "injury": {
+      "surveillance": "v7tk-n6v3",
+      "motor_vehicle": "7siw-u4fz"
+    },
+    "occupational health": {
+      "surveillance": "e4ec-z5aa",
+      "workplace": "h3hw-hzvg"
+    },
+    "youth risk behavior": {
+      "adolescent": "7aq9-prdf",
+      "school": "be57-s94j"
+    },
+    "immunization": {
+      "child": "4q35-rqzk",
+      "teen": "wd75-kcmv",
+      "adult": "s57w-7gbe"
+    },
+    "cholesterol": {
+      "adult": "gj3i-hsbz",
+      "measured": "6tn6-vc33",
+      "surveillance": "g4ie-h725"
+    },
+    "angina": {
+      "adult": "gj3i-hsbz",
+      "cardiovascular": "6tn6-vc33"
+    },
+    "drug overdose": {
+      "mortality": "rdjz-vn2n",
+      "surveillance": "g4ie-h725"
+    },
+    "infant mortality": {
+      "surveillance": "j7ym-uwqy",
+      "birth": "gu48-2cs8"
+    },
+    "fetal mortality": {
+      "surveillance": "wd75-kcmv",
+      "birth": "gu48-2cs8"
+    },
+    "heart disease mortality": {
+      "surveillance": "7aq9-prdf"
+    },
+    "diet and nutrition": {
+      "nutrition": "8ekv-ep3s",
+      "surveillance": "g4ie-h725"
+    },
+    "functioning and disability": {
+      "adult": "gj3i-hsbz",
+      "detailed": "btv3-srcc",
+      "surveillance": "g4ie-h725"
+    },
+    "health status": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs"
+    },
+    "healthcare capacity": {
+      "hospitals": "8miz-siyd",
+      "dentists": "yib5-h3pw",
+      "employment": "7siw-u4fz"
+    },
+    "healthcare spending": {
+      "national": "s57w-7gbe",
+      "personal": "gu48-2cs8"
+    },
+    "hospital visits": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "admissions": "4q35-rqzk"
+    },
+    "infectious diseases": {
+      "surveillance": "v7tk-n6v3"
+    },
+    "learning disability": {
+      "child": "7ctq-myvs"
+    },
+    "mental wellness": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs"
+    },
+    "oral health": {
+      "adult": "gj3i-hsbz",
+      "detailed": "36ue-xht5"
+    },
+    "overweight": {
+      "adult": "be57-s94j",
+      "measured": "pket-re4s"
+    },
+    "pain": {
+      "adult": "gj3i-hsbz"
+    },
+    "prescription drugs": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs",
+      "detailed": "kusj-ex57"
+    },
+    "school attendance": {
+      "child": "7ctq-myvs"
+    },
+    "substance use": {
+      "adult": "gj3i-hsbz",
+      "students": "v3ih-gzx4"
+    },
+    "vaccines": {
+      "adult": "gj3i-hsbz",
+      "child": "7ctq-myvs"
+    },
+    "workplace attendance": {
+      "adult": "gj3i-hsbz"
+    },
+    "low birthweight": {
+      "surveillance": "rg3t-4dpf"
+    },
+    "herpes": {
+      "surveillance": "v7tk-n6v3"
+    }
+  },
+  "topic_keywords": {
+    "diabetes": "diabetes",
+    "diabetic": "diabetes",
+    "blood sugar": "diabetes",
+    "glucose": "diabetes", 
+    "type 1 diabetes": "diabetes",
+    "type 2 diabetes": "diabetes",
+    "diabetes mellitus": "diabetes",
+    "asthma": "asthma",
+    "asthmatic": "asthma",
+    "respiratory": "asthma",
+    "breathing problems": "asthma",
+    "wheeze": "asthma",
+    "airways": "asthma",
+    "asthma episode": "asthma",
+    "asthma attack": "asthma",
+    "current asthma": "asthma",
+    "ever asthma": "asthma",
+    "attention deficit": "adhd",
+    "hyperactivity": "adhd",
+    "add": "adhd",
+    "adhd": "adhd",
+    "attention-deficit": "adhd",
+    "birth": "low birthweight",
+    "birthweight": "low birthweight",
+    "low birth weight": "low birthweight",
+    "live births": "low birthweight",
+    "cancer": "cancer",
+    "malignant": "cancer",
+    "tumor": "cancer",
+    "oncology": "cancer",
+    "neoplasm": "cancer",
+    "carcinoma": "cancer",
+    "breast cancer": "cancer",
+    "lung cancer": "cancer",
+    "colorectal cancer": "cancer",
+    "prostate cancer": "cancer",
+    "skin cancer": "cancer",
+    "cervical cancer": "cancer",
+    "any cancer": "cancer",
+    "heart disease": "heart disease",
+    "cardiac": "heart disease",
+    "cardiovascular": "heart disease",
+    "coronary": "heart disease",
+    "chd": "heart disease",
+    "coronary heart disease": "heart disease",
+    "heart attack": "heart disease",
+    "myocardial": "heart disease",
+    "myocardial infarction": "heart disease",
+    "angina": "angina",
+    "angina pectoris": "angina",
+    "chest pain": "angina",
+    "cholesterol": "cholesterol",
+    "high cholesterol": "cholesterol",
+    "hypercholesterolemia": "cholesterol",
+    "serum cholesterol": "cholesterol",
+    "blood pressure": "hypertension",
+    "bp": "hypertension", 
+    "high blood pressure": "hypertension",
+    "elevated blood pressure": "hypertension",
+    "hypertension": "hypertension",
+    "copd": "copd",
+    "chronic obstructive": "copd",
+    "emphysema": "copd",
+    "chronic bronchitis": "copd",
+    "lung disease": "copd",
+    "pulmonary disease": "copd",
+    "death": "suicide",
+    "mortality": "suicide",
+    "suicide": "suicide",
+    "suicidal": "suicide",
+    "self-harm": "suicide",
+    "self harm": "suicide",
+    "drug overdose": "drug overdose",
+    "overdose": "drug overdose",
+    "opioid": "drug overdose",
+    "heroin": "drug overdose",
+    "methadone": "drug overdose",
+    "synthetic opioids": "drug overdose",
+    "fentanyl": "drug overdose",
+    "fetal": "fetal mortality",
+    "fetal death": "fetal mortality",
+    "late fetal": "fetal mortality",
+    "perinatal": "fetal mortality",
+    "perinatal death": "fetal mortality",
+    "infant": "infant mortality",
+    "infant death": "infant mortality",
+    "neonatal": "infant mortality",
+    "postneonatal": "infant mortality",
+    "infant mortality": "infant mortality",
+    "diet": "diet and nutrition",
+    "nutrition": "diet and nutrition",
+    "calcium": "diet and nutrition",
+    "fiber": "diet and nutrition",
+    "dietary fiber": "diet and nutrition",
+    "iron": "diet and nutrition",
+    "potassium": "diet and nutrition",
+    "saturated fat": "diet and nutrition",
+    "sodium": "diet and nutrition",
+    "vitamin d": "diet and nutrition",
+    "functioning": "functioning and disability",
+    "disability": "functioning and disability",
+    "difficulty": "functioning and disability",
+    "communicating": "functioning and disability",
+    "hearing": "functioning and disability",
+    "remembering": "functioning and disability",
+    "concentrating": "functioning and disability",
+    "seeing": "functioning and disability",
+    "walking": "functioning and disability",
+    "climbing": "functioning and disability",
+    "self care": "functioning and disability",
+    "disability status": "functioning and disability",
+    "insurance": "health insurance",
+    "uninsured": "health insurance",
+    "coverage": "health insurance",
+    "medicaid": "health insurance",
+    "medicare": "health insurance",
+    "private insurance": "health insurance",
+    "exchange": "health insurance",
+    "public insurance": "health insurance",
+    "health status": "health status",
+    "fair health": "health status",
+    "poor health": "health status",
+    "healthcare": "healthcare access",
+    "health care": "healthcare access",
+    "medical care": "healthcare access",
+    "delayed care": "healthcare access",
+    "cost": "healthcare access",
+    "needed care": "healthcare access",
+    "mental health care": "healthcare access",
+    "medication": "healthcare access",
+    "usual place": "healthcare access",
+    "usual care": "healthcare access",
+    "hospital": "healthcare capacity",
+    "beds": "healthcare capacity",
+    "community hospital": "healthcare capacity",
+    "dentist": "healthcare capacity",
+    "dentists": "healthcare capacity",
+    "healthcare employment": "healthcare capacity",
+    "wages": "healthcare capacity",
+    "employment": "healthcare capacity",
+    "spending": "healthcare spending",
+    "health spending": "healthcare spending",
+    "national health": "healthcare spending",
+    "personal healthcare": "healthcare spending",
+    "hospital care": "healthcare spending",
+    "physician": "healthcare spending",
+    "clinical services": "healthcare spending",
+    "dental services": "healthcare spending",
+    "home health": "healthcare spending",
+    "nursing care": "healthcare spending",
+    "prescription drugs": "healthcare spending",
+    "doctor": "doctor visits",
+    "physician": "doctor visits",
+    "medical visit": "doctor visits",
+    "office visit": "doctor visits",
+    "doctor visit": "doctor visits",
+    "blood pressure check": "doctor visits",
+    "hospital admission": "hospital visits",
+    "admissions": "hospital visits",
+    "length of stay": "hospital visits",
+    "emergency": "emergency department",
+    "emergency room": "emergency department",
+    "er": "emergency department",
+    "emergency dept": "emergency department",
+    "ed": "emergency department",
+    "emergency department": "emergency department",
+    "outpatient": "hospital visits",
+    "surgery": "hospital visits",
+    "urgent care": "emergency department",
+    "retail health": "emergency department",
+    "wellness visit": "doctor visits",
+    "well child": "doctor visits",
+    "checkup": "doctor visits",
+    "infectious": "infectious diseases",
+    "herpes": "herpes",
+    "hsv": "herpes",
+    "herpes simplex": "herpes",
+    "learning": "learning disability",
+    "learning disability": "learning disability",
+    "mental": "mental wellness",
+    "counseled": "mental wellness",
+    "mental health": "mental wellness",
+    "worry": "mental wellness",
+    "nervousness": "mental wellness",
+    "anxiety": "anxiety",
+    "anxious": "mental wellness",
+    "special education": "mental wellness",
+    "intervention": "mental wellness",
+    "depression": "depression",
+    "depressive": "depression",
+    "oral": "oral health",
+    "dental": "dental care",
+    "teeth": "dental care",
+    "tooth": "dental care",
+    "dental care": "dental care",
+    "dental exam": "dental care",
+    "cleaning": "dental care",
+    "tooth loss": "oral health",
+    "dental caries": "oral health",
+    "caries": "oral health",
+    "tooth decay": "oral health",
+    "untreated": "oral health",
+    "primary teeth": "oral health",
+    "permanent teeth": "oral health",
+    "weight": "obesity",
+    "overweight": "overweight",
+    "obese": "obesity",
+    "obesity": "obesity",
+    "bmi": "obesity",
+    "body mass index": "obesity",
+    "normal weight": "overweight",
+    "grade 1 obesity": "obesity",
+    "grade 2 obesity": "obesity",
+    "grade 3 obesity": "obesity",
+    "pain": "pain",
+    "chronic pain": "chronic pain",
+    "prescription": "prescription drugs",
+    "medication": "prescription drugs",
+    "drugs": "prescription drugs",
+    "medicines": "prescription drugs",
+    "school": "school attendance",
+    "missed days": "school attendance",
+    "absent": "school attendance",
+    "illness": "school attendance",
+    "injury": "school attendance",
+    "smoking": "smoking",
+    "smoker": "smoking",
+    "tobacco": "smoking",
+    "cigarette": "smoking",
+    "nicotine": "smoking",
+    "vaping": "smoking",
+    "e-cigarette": "smoking",
+    "electronic cigarette": "smoking",
+    "alcohol": "alcohol",
+    "drinking": "alcohol",
+    "binge": "alcohol",
+    "heavy drinking": "alcohol",
+    "alcoholic": "alcohol",
+    "liquor": "alcohol",
+    "beer": "alcohol",
+    "wine": "alcohol",
+    "cocaine": "substance use",
+    "inhalants": "substance use",
+    "marijuana": "substance use",
+    "mdma": "substance use",
+    "ecstasy": "substance use",
+    "substance": "substance use",
+    "drugs": "substance use",
+    "flu": "influenza vaccination",
+    "influenza": "influenza vaccination",
+    "flu shots": "influenza vaccination",
+    "flu shot": "influenza vaccination",
+    "flu vaccine": "influenza vaccination",
+    "seasonal flu": "influenza vaccination",
+    "flu immunization": "influenza vaccination",
+    "pneumonia": "pneumococcal vaccination",
+    "pneumococcal": "pneumococcal vaccination",
+    "pneumonia vaccine": "pneumococcal vaccination",
+    "pneumonia shot": "pneumococcal vaccination", 
+    "pneumococcal vaccine": "pneumococcal vaccination",
+    "vaccination": "influenza vaccination",
+    "immunization": "influenza vaccination",
+    "vaccine": "influenza vaccination",
+    "shots": "influenza vaccination",
+    "inoculation": "influenza vaccination",
+    "workdays": "workplace attendance",
+    "missed work": "workplace attendance",
+    "work": "workplace attendance",
+    "disability": "workplace attendance"
+  },
+  "dataset_metadata": {
+    "gj3i-hsbz": {
+      "name": "NHIS Adult Summary Health Statistics",
+      "description": "Annual estimates for adults aged 18 years and over from the National Health Interview Survey",
+      "population": "adults",
+      "age_range": "18+",
+      "data_source": "NHIS",
+      "domain": "data.cdc.gov",
+      "aliases": ["6gct-yv67", "25m4-6qqq"],
+      "topics": ["chronic conditions", "healthcare access", "insurance", "preventive services", "disabilities", "diabetes", "asthma", "heart disease", "hypertension", "cancer", "obesity", "depression", "anxiety", "stroke", "arthritis", "copd", "kidney disease", "smoking", "alcohol", "physical activity", "sleep", "influenza vaccination", "pneumococcal vaccination", "covid vaccination", "healthcare access", "dental care", "chronic pain", "cholesterol", "angina", "functioning and disability", "health insurance", "health status", "doctor visits", "emergency department", "oral health", "pain", "prescription drugs", "substance use", "vaccines", "workplace attendance"]
+    },
+    "7ctq-myvs": {
+      "name": "NHIS Child Summary Health Statistics",
+      "description": "Annual estimates for children under 18 years from the National Health Interview Survey", 
+      "population": "children",
+      "age_range": "0-17",
+      "data_source": "NHIS",
+      "domain": "data.cdc.gov",
+      "aliases": ["7ctq-myvs", "wxz7-ekz9"],
+      "topics": ["childhood conditions", "healthcare access", "insurance", "immunizations", "disabilities", "asthma", "adhd", "health insurance", "health status", "healthcare access", "doctor visits", "emergency department", "dental care", "learning disability", "mental wellness", "prescription drugs", "school attendance", "influenza vaccination", "vaccines"]
+    },
+    "rg3t-4dpf": {
+      "name": "Low birthweight live births",
+      "description": "Low birthweight live births by race and Hispanic origin",
+      "population": "infants",
+      "age_range": "birth",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["birth outcomes", "low birthweight", "maternal health"]
+    },
+    "h3hw-hzvg": {
+      "name": "Cancer mortality surveillance",
+      "description": "Death rates for malignant neoplasms by sex, race, and Hispanic origin",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["cancer mortality", "death rates", "cancer"]
+    },
+    "rdjz-vn2n": {
+      "name": "Drug overdose mortality surveillance",
+      "description": "Drug overdose death rates by drug type, sex, race, and Hispanic origin",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["drug overdose", "mortality", "opioids", "substance use"]
+    },
+    "wd75-kcmv": {
+      "name": "Fetal and perinatal mortality surveillance",
+      "description": "Fetal, late fetal, and perinatal mortality rates",
+      "population": "infants",
+      "age_range": "fetal/perinatal",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["fetal mortality", "perinatal mortality", "birth outcomes"]
+    },
+    "7aq9-prdf": {
+      "name": "Heart disease mortality surveillance",
+      "description": "Death rates for heart disease by sex, race, and Hispanic origin",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["heart disease mortality", "cardiovascular mortality"]
+    },
+    "j7ym-uwqy": {
+      "name": "Infant mortality surveillance",
+      "description": "Infant, neonatal, and postneonatal mortality rates",
+      "population": "infants",
+      "age_range": "0-1 year",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["infant mortality", "neonatal mortality", "postneonatal mortality"]
+    },
+    "w26f-tf3h": {
+      "name": "Suicide mortality surveillance", 
+      "description": "Death rates for suicide by sex, race, and Hispanic origin",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NVSS",
+      "domain": "data.cdc.gov",
+      "topics": ["suicide", "mortality", "vital statistics", "death rates"]
+    },
+    "8ekv-ep3s": {
+      "name": "NHANES dietary intake surveillance",
+      "description": "Mean dietary intake estimates by demographic characteristics",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["nutrition", "diet", "calcium", "fiber", "iron", "potassium", "saturated fat", "sodium", "vitamin d"]
+    },
+    "btv3-srcc": {
+      "name": "Functional difficulties surveillance",
+      "description": "Functional difficulties in adults age 18 and over",
+      "population": "adults",
+      "age_range": "18+",
+      "data_source": "NHIS",
+      "domain": "data.cdc.gov",
+      "topics": ["functioning", "disability", "functional limitations"]
+    },
+    "8miz-siyd": {
+      "name": "Community hospital beds surveillance",
+      "description": "Community hospital beds by state",
+      "population": "healthcare system",
+      "age_range": "N/A",
+      "data_source": "AHA",
+      "domain": "data.cdc.gov",
+      "topics": ["healthcare capacity", "hospital beds", "healthcare resources"]
+    },
+    "yib5-h3pw": {
+      "name": "Dentists surveillance",
+      "description": "Dentists by state",
+      "population": "healthcare system",
+      "age_range": "N/A",
+      "data_source": "ADA",
+      "domain": "data.cdc.gov",
+      "topics": ["healthcare capacity", "dentists", "dental workforce"]
+    },
+    "7siw-u4fz": {
+      "name": "Healthcare employment and wages",
+      "description": "Health care employment and wages by select occupation",
+      "population": "workforce",
+      "age_range": "working age",
+      "data_source": "OEWS",
+      "domain": "data.cdc.gov",
+      "topics": ["healthcare capacity", "employment", "wages", "healthcare workforce"]
+    },
+    "s57w-7gbe": {
+      "name": "National health spending",
+      "description": "National health spending in the United States",
+      "population": "national",
+      "age_range": "N/A",
+      "data_source": "NHEA",
+      "domain": "data.cdc.gov",
+      "topics": ["healthcare spending", "national spending"]
+    },
+    "gu48-2cs8": {
+      "name": "Personal healthcare spending",
+      "description": "Personal healthcare spending in the United States",
+      "population": "national",
+      "age_range": "N/A",
+      "data_source": "NHEA",
+      "domain": "data.cdc.gov",
+      "topics": ["healthcare spending", "personal spending", "hospital care", "physician services", "dental services", "prescription drugs"]
+    },
+    "4q35-rqzk": {
+      "name": "Hospital utilization surveillance",
+      "description": "Hospital admission, average length of stay, and outpatient visits",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "AHA",
+      "domain": "data.cdc.gov",
+      "topics": ["hospital visits", "admissions", "outpatient", "surgery"]
+    },
+    "e4ec-z5aa": {
+      "name": "Emergency department visits surveillance",
+      "description": "Estimate of Emergency Department Visits by primary diagnosis and reason",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHAMCS",
+      "domain": "data.cdc.gov",
+      "topics": ["emergency department", "ed visits", "diagnoses", "symptoms"]
+    },
+    "v7tk-n6v3": {
+      "name": "Infectious diseases surveillance",
+      "description": "Select infectious diseases prevalence estimates",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["infectious diseases", "herpes", "hsv"]
+    },
+    "36ue-xht5": {
+      "name": "Oral health surveillance",
+      "description": "Select oral health prevalence estimates",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["oral health", "dental caries", "tooth loss", "dental care"]
+    },
+    "be57-s94j": {
+      "name": "Adult weight status surveillance",
+      "description": "Normal weight, overweight, and obesity among adults age 20 and over",
+      "population": "adults",
+      "age_range": "20+",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["obesity", "overweight", "bmi", "weight status"]
+    },
+    "pket-re4s": {
+      "name": "Chronic conditions surveillance",
+      "description": "Select chronic conditions prevalence estimates",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["chronic conditions", "hypertension", "high cholesterol", "obesity"]
+    },
+    "uzn2-cq9f": {
+      "name": "Childhood obesity surveillance",
+      "description": "Obesity among children and adolescents age 2-19 years",
+      "population": "children",
+      "age_range": "2-19",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["childhood obesity", "obesity", "children", "adolescents"]
+    },
+    "kusj-ex57": {
+      "name": "Prescription drug use surveillance",
+      "description": "Prescription drug use in the past 30 days by number of drugs",
+      "population": "all ages",
+      "age_range": "all ages",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["prescription drugs", "medication use", "polypharmacy"]
+    },
+    "v3ih-gzx4": {
+      "name": "Substance use surveillance",
+      "description": "Use of selected substances in the past 30 days among students",
+      "population": "students",
+      "age_range": "high school",
+      "data_source": "MTF",
+      "domain": "data.cdc.gov",
+      "topics": ["substance use", "alcohol", "smoking", "drugs", "students", "binge drinking", "cigarettes", "cocaine", "inhalants", "marijuana", "mdma", "nicotine vaping"]
+    },
+    "6tn6-vc33": {
+      "name": "Cholesterol surveillance",
+      "description": "Cholesterol in adults age 20 and older by demographic characteristics",
+      "population": "adults",
+      "age_range": "20+",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["cholesterol", "high cholesterol", "hypercholesterolemia", "cardiovascular"]
+    },
+    "va5e-efw9": {
+      "name": "Hypertension surveillance",
+      "description": "Hypertension in adults age 20 and older by demographic characteristics",
+      "population": "adults",
+      "age_range": "20+",
+      "data_source": "NHANES",
+      "domain": "data.cdc.gov",
+      "topics": ["hypertension", "blood pressure", "cardiovascular"]
+    },
+    "g4ie-h725": {
+      "name": "U.S. Chronic Disease Indicators (CDI)",
+      "description": "Cross-cutting set of 124+ indicators for chronic disease surveillance",
+      "population": "all ages",
+      "age_range": "varies by indicator", 
+      "data_source": "CDI",
+      "domain": "chronicdata.cdc.gov",
+      "topics": ["chronic diseases", "risk factors", "preventive services", "surveillance"]
+    },
+    "eav7-hnsx": {
+      "name": "PLACES: Local Data for Better Health",
+      "description": "Local area estimates for health outcomes, preventive services, and risk behaviors",
+      "population": "adults",
+      "age_range": "18+",
+      "data_source": "PLACES/BRFSS",
+      "domain": "data.cdc.gov",
+      "topics": ["local health outcomes", "geographic disparities", "community health"]
+    }
+  },
+  "dqs_topic_mapping": {
+    "diabetes": "diabetes-diagnosis-selfreported",
+    "asthma": "current-asthma-in-adults",
+    "asthma (adult)": "current-asthma-in-adults", 
+    "asthma (child)": "current-asthma-in-children",
+    "adhd": "ever-attentiondeficithyperactivity-disorder-in-children",
+    "low birthweight": "low-birthweight-live-births",
+    "cancer": "any-cancer-type",
+    "breast cancer": "breast-cancer",
+    "cervical cancer": "cervical-cancer",
+    "prostate cancer": "prostate-cancer",
+    "skin cancer": "any-skin-cancer",
+    "heart disease": "coronary-heart-disease",
+    "angina": "anginaangina-pectoris",
+    "heart attack": "heart-attackmyocardial-infarction",
+    "cholesterol": "high-cholesterol-diagnosis-selfreported",
+    "high cholesterol": "high-cholesterol-total-measured",
+    "hypertension": "hypertension-diagnosis-selfreported",
+    "blood pressure": "hypertension-measured",
+    "copd": "copd-emphysema-chronic-bronchitis",
+    "suicide": "suicide-deaths",
+    "drug overdose": "all-drug-overdose-deaths",
+    "fetal mortality": "all-fetal-deaths",
+    "infant mortality": "all-infant-deaths",
+    "heart disease mortality": "heart-disease-deaths",
+    "diet": "calcium-intake",
+    "nutrition": "dietary-fiber-intake",
+    "calcium": "calcium-intake",
+    "fiber": "dietary-fiber-intake",
+    "iron": "iron-intake",
+    "potassium": "potassium-intake",
+    "sodium": "sodium-intake",
+    "vitamin d": "vitamin-d-intake",
+    "disability": "disability-status-composite",
+    "functioning": "functioning-difficulties-composite-threelevel",
+    "health insurance": "uninsured-at-time-of-interview-among-adults",
+    "uninsured": "uninsured-at-time-of-interview-among-adults",
+    "health status": "fair-or-poor-health-status-in-adults",
+    "healthcare access": "delayed-getting-medical-care-due-to-cost-among-adults",
+    "doctor visits": "doctor-visit-among-adults",
+    "emergency department": "hospital-emergency-department-visit",
+    "oral health": "dental-exam-or-cleaning",
+    "dental care": "dental-exam-or-cleaning",
+    "dental caries": "total-dental-caries-in-permanent-teeth-in-adults",
+    "tooth loss": "complete-tooth-loss",
+    "obesity": "obesity-in-adults-selfreported",
+    "overweight": "overweight-or-obesity-bmi-greater-than-or-equal-to-250",
+    "bmi": "bmi-among-adults-measured",
+    "pain": "regularly-experienced-chronic-pain",
+    "chronic pain": "regularly-experienced-chronic-pain",
+    "prescription drugs": "prescription-medication-use-among-adults",
+    "smoking": "current-cigarette-smoking",
+    "vaping": "current-electronic-cigarette-or-vaping-product-use",
+    "alcohol": "alcohol",
+    "substance use": "substance-use-among-students",
+    "influenza vaccination": "receipt-of-influenza-vaccination-among-adults",
+    "flu vaccine": "receipt-of-influenza-vaccination-among-adults",
+    "pneumococcal vaccination": "ever-received-a-pneumococcal-vaccination",
+    "depression": "regularly-had-feelings-of-depression",
+    "anxiety": "regularly-had-feelings-of-worry-nervousness-or-anxiety",
+    "mental health": "counseled-by-a-mental-health-professional",
+    "learning disability": "ever-a-learning-disability-in-children",
+    "school attendance": "missing-11-or-more-school-days-due-to-illness-or-injury",
+    "workplace attendance": "six-or-more-workdays-missed-due-to-illness-injury-or-disability"
+  },
+  "grouping_categories": {
+    "demographics": {
+      "sex": "Sex",
+      "gender": "Sex",
+      "age": "Age group",
+      "race": "Race and Hispanic origin",
+      "ethnicity": "Race and Hispanic origin",
+      "origin": "Race and Hispanic origin"
+    },
+    "socioeconomic": {
+      "education": "Education",
+      "income": "Income", 
+      "poverty": "Federal poverty level",
+      "insurance": "Health insurance coverage"
+    },
+    "geographic": {
+      "state": "State or territory",
+      "region": "Region",
+      "urban": "Urbanization level",
+      "metro": "Metropolitan status"
+    },
+    "other": {
+      "veteran": "Veteran status",
+      "marital": "Marital status",
+      "disability": "Disability status"
+    }
+  },
+  "population_context": {
+    "children_keywords": ["children", "child", "kids", "pediatric", "childhood", "youth", "adolescent", "teen", "teenager"],
+    "adult_keywords": ["adults", "adult", "18+", "grown-ups"],
+    "age_specific_topics": {
+      "asthma": {
+        "adult": "current-asthma-in-adults",
+        "child": "current-asthma-in-children"
+      },
+      "obesity": {
+        "adult": "obesity-in-adults-selfreported",
+        "child": "obesity-in-children-measured"
+      },
+      "influenza_vaccination": {
+        "adult": "receipt-of-influenza-vaccination-among-adults",
+        "child": "receipt-of-influenza-vaccination-among-children"
+      }
+    }
+  },
+  "data_source_priority": {
+    "general_health": ["gj3i-hsbz", "7ctq-myvs", "g4ie-h725"],
+    "chronic_disease": ["g4ie-h725", "gj3i-hsbz", "eav7-hnsx"],
+    "local_data": ["eav7-hnsx", "g4ie-h725"],
+    "cardiovascular": ["6tn6-vc33", "va5e-efw9", "gj3i-hsbz", "g4ie-h725"],
+    "mental_health": ["gj3i-hsbz", "7ctq-myvs", "g4ie-h725"],
+    "injury": ["w26f-tf3h", "rdjz-vn2n", "v7tk-n6v3", "g4ie-h725"],
+    "vaccination": ["gj3i-hsbz", "7ctq-myvs", "s57w-7gbe"],
+    "infectious_disease": ["v7tk-n6v3", "kusj-ex57"],
+    "environmental": ["6tn6-vc33", "rdjz-vn2n"],
+    "youth": ["7ctq-myvs", "v3ih-gzx4"],
+    "nutrition": ["8ekv-ep3s", "pket-re4s"],
+    "oral_health": ["36ue-xht5", "gj3i-hsbz"],
+    "mortality": ["w26f-tf3h", "rdjz-vn2n", "h3hw-hzvg", "7aq9-prdf", "j7ym-uwqy", "wd75-kcmv"],
+    "healthcare_system": ["gj3i-hsbz", "7ctq-myvs", "4q35-rqzk", "e4ec-z5aa", "8miz-siyd", "yib5-h3pw"]
+  },
+  "alternative_spellings": {
+    "diabetes": ["diabeetus", "diabetis", "diabetus"],
+    "asthma": ["ashma", "asma"],
+    "hypertension": ["hipertension", "hypertention"],
+    "pneumococcal": ["pneumococal", "pneumococcle"],
+    "influenza": ["infuenza", "influensa"],
+    "cardiovascular": ["cardio-vascular", "cardovascular"],
+    "obesity": ["obeisty", "obesety"]
+  },
+  "health_conditions_categories": {
+    "chronic_diseases": ["diabetes", "hypertension", "heart disease", "cancer", "arthritis", "copd", "kidney disease"],
+    "respiratory": ["asthma", "copd"],
+    "cardiovascular": ["heart disease", "hypertension", "stroke", "cholesterol", "angina"],
+    "mental_health": ["depression", "anxiety", "suicide"],
+    "preventive_care": ["influenza vaccination", "pneumococcal vaccination", "covid vaccination", "dental care"],
+    "lifestyle": ["smoking", "alcohol", "physical activity", "sleep", "obesity"],
+    "healthcare_utilization": ["healthcare access", "doctor visits", "emergency department", "health insurance"],
+    "infectious_diseases": ["herpes", "infectious diseases"],
+    "maternal_child": ["low birthweight", "fetal mortality", "infant mortality", "adhd", "learning disability"],
+    "environmental_occupational": ["environmental health", "occupational health"],
+    "injury_violence": ["suicide", "drug overdose", "injury"],
+    "nutrition": ["diet and nutrition", "calcium", "fiber", "iron", "potassium", "sodium", "vitamin d"],
+    "disability": ["functioning and disability", "disability"],
+    "oral_health": ["dental care", "oral health", "dental caries", "tooth loss"],
+    "substance_use": ["smoking", "alcohol", "substance use", "drug overdose"],
+    "healthcare_system": ["healthcare capacity", "healthcare spending", "hospital visits"]
+  }
+}
