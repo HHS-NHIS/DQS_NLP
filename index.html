@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html><head><meta charset='utf-8'><title>CDC Health Data - Ask Questions in Plain English</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --primary-blue: #0057B7;
+  --secondary-blue: #4A90E2;
+  --light-blue: #E3F2FD;
+  --dark-blue: #003D82;
+  --text-dark: #2C3E50;
+  --bg-gray: #F8F9FA;
+  --border-gray: #E1E5E9;
+}
+
+body{
+  font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin:0;padding:0;
+  background:var(--bg-gray);
+  color:var(--text-dark);
+  line-height:1.6;
+}
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  background:white;
+  min-height:100vh;
+  box-shadow:0 0 20px rgba(0,87,183,0.1);
+}
+.header{
+  background:linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+  color:white;
+  padding:24px;
+  border-bottom:4px solid var(--secondary-blue);
+}
+.header h1{margin:0;font-size:28px;font-weight:600}
+.header p{margin:8px 0 0 0;opacity:0.9;font-size:16px}
+.content{padding:24px}
+
+input{
+  width:100%;
+  padding:16px;
+  font-size:16px;
+  border:2px solid var(--border-gray);
+  border-radius:8px;
+  margin-bottom:12px;
+  transition:border-color 0.2s;
+  box-sizing:border-box;
+}
+input:focus{
+  border-color:var(--primary-blue);
+  outline:none;
+  box-shadow:0 0 0 3px rgba(0,87,183,0.1);
+}
+.hint{
+  color:#6c757d;
+  font-size:14px;
+  margin-bottom:16px;
+  font-style:italic;
+}
+
+.examples{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:12px;
+  margin:16px 0;
+}
+.example{
+  background:white;
+  border:2px solid var(--light-blue);
+  padding:12px 16px;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all 0.2s;
+  font-weight:500;
+}
+.example:hover{
+  border-color:var(--secondary-blue);
+  background:var(--light-blue);
+  transform:translateY(-1px);
+}
+
+button{
+  padding:12px 20px;
+  margin:6px;
+  border:none;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all 0.2s;
+  font-size:14px;
+}
+button.primary{
+  background:var(--primary-blue);
+  color:white;
+}
+button.primary:hover{
+  background:var(--dark-blue);
+  transform:translateY(-1px);
+}
+button.secondary{
+  background:white;
+  color:var(--primary-blue);
+  border:2px solid var(--primary-blue);
+}
+button.secondary:hover{
+  background:var(--light-blue);
+}
+
+.stats{
+  background:var(--light-blue);
+  border:1px solid var(--secondary-blue);
+  padding:16px;
+  border-radius:8px;
+  margin:16px 0;
+}
+.stats strong{color:var(--primary-blue)}
+
+.narrative{
+  background:white;
+  color:var(--text-dark);
+  border:3px solid var(--primary-blue);
+  padding:20px;
+  border-radius:8px;
+  margin:20px 0;
+  box-shadow:0 4px 12px rgba(0,87,183,0.15);
+  line-height:1.7;
+}
+.narrative strong{
+  color:var(--primary-blue);
+  font-weight:700;
+}
+.narrative a{
+  color:var(--primary-blue);
+  font-weight:600;
+  text-decoration:none;
+}
+.narrative a:hover{
+  color:var(--dark-blue);
+  text-decoration:underline;
+}
+.switch-options{
+  margin:12px 0;
+  padding:12px;
+  background:var(--light-blue);
+  border:1px solid var(--secondary-blue);
+  border-radius:6px;
+}
+.switch-btn{
+  background:var(--primary-blue) !important;
+  color:white !important;
+  border:none !important;
+  padding:8px 16px !important;
+  margin:4px !important;
+  border-radius:4px !important;
+  font-weight:600 !important;
+  font-size:13px !important;
+}
+.switch-btn:hover{
+  background:var(--dark-blue) !important;
+  transform:translateY(-1px) !important;
+}
+
+.chart-wrap{
+  background:white;
+  border:2px solid var(--border-gray);
+  border-radius:8px;
+  padding:20px;
+  margin:20px 0;
+}
+.chart-wrap h3{
+  margin:0 0 16px 0;
+  color:var(--primary-blue);
+  font-size:20px;
+  border-bottom:2px solid var(--primary-blue);
+  padding-bottom:8px;
+}
+#chart{
+  width:100% !important;
+  height:450px !important;
+}
+
+.empty{
+  padding:20px;
+  text-align:center;
+  border:2px dashed var(--border-gray);
+  border-radius:8px;
+  background:var(--light-blue);
+  color:var(--primary-blue);
+}
+textarea{
+  width:100%;
+  height:300px;
+  font-family:'Consolas', monospace;
+  font-size:12px;
+  border:2px solid var(--border-gray);
+  border-radius:6px;
+  padding:12px;
+  box-sizing:border-box;
+}
+details{
+  margin-top:20px;
+  border:1px solid var(--border-gray);
+  border-radius:6px;
+  overflow:hidden;
+}
+summary{
+  background:var(--light-blue);
+  padding:12px;
+  cursor:pointer;
+  font-weight:600;
+  color:var(--primary-blue);
+}
+details[open] summary{
+  border-bottom:1px solid var(--border-gray);
+}
+a{color:var(--primary-blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* API Status Indicator */
+.api-status {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 1000;
+}
+.api-status.online {
+  background: #27AE60;
+  color: white;
+}
+.api-status.offline {
+  background: #E74C3C;
+  color: white;
+}
+.api-status.checking {
+  background: #F39C12;
+  color: white;
+}
+</style>
+</head><body>
+
+<div id="apiStatus" class="api-status checking">Checking API...</div>
+
+<div class="container">
+  <div class="header">
+    <h1>CDC Health Data - Ask Questions in Plain English</h1>
+    <p>Get health statistics by asking simple questions like "How many adults have diabetes?"</p>
+  </div>
+  
+  <div class="content">
+    <input id="q" placeholder='Ask a health question like "How many people got flu shots?" or "Diabetes in women by race"'>
+    <div class="hint">Ask questions about health conditions, vaccines, or health behaviors. You can ask for breakdowns by gender, race, age, state, or income level.</div>
+
+    <div class="examples">
+      <div class="example" onclick="setQuery('diabetes in adults by sex')">Diabetes rates by gender</div>
+      <div class="example" onclick="setQuery('asthma in children by race')">Childhood asthma by race</div>
+      <div class="example" onclick="setQuery('how many children got flu shots')">Children flu vaccination</div>
+      <div class="example" onclick="setQuery('high blood pressure by age')">Blood pressure by age group</div>
+      <div class="example" onclick="setQuery('suicide deaths by race')">Suicide mortality by race</div>
+      <div class="example" onclick="setQuery('dental care by income')">Dental care by income</div>
+      <div class="example" onclick="setQuery('cancer deaths in women')">Cancer mortality in women</div>
+      <div class="example" onclick="setQuery('drug overdose deaths by state')">Drug overdoses by state</div>
+    </div>
+
+    <div>
+      <button class="primary" onclick="ask()">Get Health Data</button>
+      <button class="secondary" onclick="debugCatalog()">Show Available Data</button>
+      <button class="secondary" onclick="viewKeywords()">Help with Questions</button>
+      <button class="secondary" onclick="debugQuery()">Debug My Question</button>
+      <button class="secondary" onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="noData" class="empty" style="display:none"></div>
+
+    <div id="stats" class="stats" style="display:none">
+      <strong>What We Found</strong>
+      <div id="statsContent"></div>
+    </div>
+
+    <div id="narrative" class="narrative" style="display:none"></div>
+
+    <div class="chart-wrap">
+      <h3>Your Health Data Chart</h3>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <details>
+      <summary>API Response Data</summary>
+      <textarea id="json"></textarea>
+    </details>
+  </div>
+</div>
+
+<script>
+// Configuration - UPDATE THIS URL AFTER RAILWAY DEPLOYMENT
+const API_BASE_URL = 'https://dqsnlp-production.up.railway.app';
+
+let chart;
+
+// Check API status on load
+checkApiStatus();
+
+async function checkApiStatus() {
+  const statusEl = document.getElementById('apiStatus');
+  statusEl.textContent = 'Checking API...';
+  statusEl.className = 'api-status checking';
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/__version`);
+    if (response.ok) {
+      statusEl.textContent = 'API Online';
+      statusEl.className = 'api-status online';
+      setTimeout(() => statusEl.style.display = 'none', 3000);
+    } else {
+      throw new Error('API not responding');
+    }
+  } catch (error) {
+    statusEl.textContent = 'API Offline';
+    statusEl.className = 'api-status offline';
+    console.error('API Status Check Failed:', error);
+  }
+}
+
+function setQuery(q) { 
+  document.getElementById('q').value = q; 
+}
+
+function clearResults() {
+  document.getElementById('json').value = '';
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('noData').style.display = 'none';
+  document.getElementById('narrative').style.display = 'none';
+  if(chart) { 
+    chart.destroy(); 
+    chart = null; 
+  }
+}
+
+async function ask() {
+  const q = document.getElementById('q').value.trim();
+  if(!q) return;
+  clearResults();
+  document.getElementById('json').value = 'Loading...';
+  
+  try {
+    const r = await fetch(`${API_BASE_URL}/v1/nlq`, {
+      method: 'POST', 
+      headers: {'Content-Type': 'application/json'}, 
+      body: JSON.stringify({q})
+    });
+    const j = await r.json();
+    document.getElementById('json').value = JSON.stringify(j, null, 2);
+    showStats(j);
+    showNarrative(j);
+    
+    if(j.data_count && j.data_count > 0) { 
+      drawChart(j); 
+    } else {
+      let errorMsg = j.error || 'Sorry, we could not find data that matches your question.';
+      document.getElementById('noData').innerHTML = errorMsg;
+      document.getElementById('noData').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('json').value = 'Error connecting to API: ' + e.message;
+    document.getElementById('noData').innerHTML = 'Error connecting to API. Please check if the server is running.';
+    document.getElementById('noData').style.display = 'block';
+  }
+}
+
+function showNarrative(j) {
+  const el = document.getElementById('narrative');
+  const smartNarrative = j.smart_narrative || '';
+  
+  if (smartNarrative) {
+    let html = smartNarrative;
+    
+    const parts = html.split('**');
+    html = parts.map((part, i) => i % 2 === 1 ? '<strong>' + part + '</strong>' : part).join('');
+    
+    while (html.includes('[') && html.includes('](') && html.includes(')')) {
+      const start = html.indexOf('[');
+      const middle = html.indexOf('](', start);
+      const end = html.indexOf(')', middle);
+      
+      if (start < middle && middle < end) {
+        const text = html.substring(start + 1, middle);
+        const url = html.substring(middle + 2, end);
+        const link = '<a href="' + url + '" target="_blank">' + text + '</a>';
+        html = html.substring(0, start) + link + html.substring(end + 1);
+      } else {
+        break;
+      }
+    }
+    
+    el.innerHTML = html;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+async function debugCatalog() { 
+  const r = await fetch(`${API_BASE_URL}/v1/catalog/debug`); 
+  const j = await r.json(); 
+  document.getElementById('json').value = JSON.stringify(j, null, 2); 
+}
+
+async function viewKeywords() { 
+  const r = await fetch(`${API_BASE_URL}/v1/keywords`); 
+  const j = await r.json(); 
+  document.getElementById('json').value = JSON.stringify(j, null, 2); 
+}
+
+async function debugQuery() {
+  const q = document.getElementById('q').value.trim();
+  if(!q) {
+    alert('Please enter a question first, then click Debug My Question');
+    return;
+  }
+  const r = await fetch(`${API_BASE_URL}/v1/debug/match/${encodeURIComponent(q)}`); 
+  const j = await r.json(); 
+  document.getElementById('json').value = JSON.stringify(j, null, 2);
+  
+  if(j.indicator_matching && j.indicator_matching.best_match && j.indicator_matching.best_match.indicator) {
+    document.getElementById('noData').innerHTML = `
+      <strong>Debug Results for: "${q}"</strong><br/>
+      <strong>Canonical Topic:</strong> ${j.canonical_topic_analysis.canonical_topic || 'None found'}<br/>
+      <strong>Selected Dataset:</strong> ${j.selected_dataset.label}<br/>
+      <strong>Best Match:</strong> ${j.indicator_matching.best_match.indicator} (score: ${j.indicator_matching.best_match.score})<br/>
+      <strong>Keywords Loaded:</strong> ${j.keywords_status.keywords_loaded ? 'YES' : 'NO'}
+    `;
+  } else {
+    document.getElementById('noData').innerHTML = `<strong>Debug: No match found for "${q}"</strong>`;
+  }
+  document.getElementById('noData').style.display = 'block';
+}
+
+function showStats(j) {
+  if(j.error) {
+    let errorMsg = j.error;
+    
+    // Process markdown-style links in error messages
+    while (errorMsg.includes('[') && errorMsg.includes('](') && errorMsg.includes(')')) {
+      const start = errorMsg.indexOf('[');
+      const middle = errorMsg.indexOf('](', start);
+      const end = errorMsg.indexOf(')', middle);
+      
+      if (start < middle && middle < end) {
+        const text = errorMsg.substring(start + 1, middle);
+        const url = errorMsg.substring(middle + 2, end);
+        const link = '<a href="' + url + '" target="_blank">' + text + '</a>';
+        errorMsg = errorMsg.substring(0, start) + link + errorMsg.substring(end + 1);
+      } else {
+        break;
+      }
+    }
+    
+    // Process **bold** text in error messages
+    const parts = errorMsg.split('**');
+    errorMsg = parts.map((part, i) => i % 2 === 1 ? '<strong>' + part + '</strong>' : part).join('');
+    
+    document.getElementById('statsContent').innerHTML = '<span style="color:#dc3545">Problem: ' + errorMsg + '</span>';
+    document.getElementById('stats').style.display = 'block'; 
+    return;
+  }
+  const m = j.matches || {};
+  const html = `
+    <div><strong>Health Topic:</strong> ${m.indicator || 'Not found'}</div>
+    <div><strong>Broken Down By:</strong> ${m.grouping_category || 'Overall (everyone)'} ${m.group_value ? '(' + m.group_value + ')' : ''}</div>
+    <div><strong>Time Period:</strong> ${m.year || 'All available years'}</div>
+    <div><strong>Data Points Found:</strong> ${j.data_count || 0}</div>
+    <div><a href="${j.query_url}" target="_blank">View Raw Data</a></div>
+  `;
+  document.getElementById('statsContent').innerHTML = html;
+  document.getElementById('stats').style.display = 'block';
+}
+
+const ErrorBarPlugin = {
+  id: 'errorBarPlugin',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!meta || !dataset._ci || !dataset._err) return;
+      
+      meta.data.forEach((element, index) => {
+        const ci = dataset._ci[index];
+        if (!ci || ci[0] == null || ci[1] == null) return;
+        
+        ctx.save();
+        ctx.strokeStyle = dataset.borderColor || '#0057B7';
+        ctx.lineWidth = 2;
+        
+        if (dataset._err === 'h') {
+          const y = element.y;
+          const xL = chart.scales.x.getPixelForValue(ci[0]);
+          const xU = chart.scales.x.getPixelForValue(ci[1]);
+          
+          ctx.beginPath();
+          ctx.moveTo(xL, y);
+          ctx.lineTo(xU, y);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(xL, y - 6);
+          ctx.lineTo(xL, y + 6);
+          ctx.moveTo(xU, y - 6);
+          ctx.lineTo(xU, y + 6);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
+Chart.register(ErrorBarPlugin);
+
+function drawChart(j) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if(chart) chart.destroy();
+  let series = j.chart_series || [];
+  if(!series.length) return;
+
+  const periods = Array.from(new Set(series.flatMap(s => s.points.map(p => String(p.time_period))))).sort();
+  const isSingleYear = periods.length === 1;
+
+  if(isSingleYear) {
+    const year = periods[0];
+    const labels = series.map(s => s.label || 'Series');
+    const data = series.map(s => { 
+      const pt = s.points.find(p => String(p.time_period) === year); 
+      return pt ? pt.estimate : null; 
+    });
+    const ci = series.map(s => { 
+      const pt = s.points.find(p => String(p.time_period) === year);
+      return (pt && typeof pt.estimate_lci === 'number' && typeof pt.estimate_uci === 'number') 
+        ? [pt.estimate_lci, pt.estimate_uci] : [null,null]; 
+    });
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: { 
+        labels, 
+        datasets: [{
+          label: (j.matches && j.matches.indicator) ? j.matches.indicator : 'Estimate',
+          data, 
+          _ci: ci, 
+          _err: 'h',
+          borderColor: '#0057B7', 
+          backgroundColor: '#0057B7CC', 
+          borderWidth: 2,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, 
+        maintainAspectRatio: false, 
+        indexAxis: 'y',
+        scales: {
+          x: {
+            beginAtZero: true, 
+            title: {display: true, text: 'Estimate (%)'},
+            grid: {color: '#E1E5E9'}
+          },
+          y: {
+            title: {display: true, text: (j.matches && j.matches.grouping_category) || 'Group'},
+            grid: {display: false}
+          }
+        },
+        plugins: {
+          legend: {display: false},
+          tooltip: { 
+            callbacks: { 
+              label: (ctx) => {
+                const ds = ctx.dataset;
+                const v = ctx.parsed.x;
+                const ci = ds._ci && ds._ci[ctx.dataIndex];
+                let s = (ctx.label ? ctx.label + ': ' : '') + (v != null ? v.toFixed(1)+'%' : 'NA');
+                if(ci && ci[0] != null && ci[1] != null) {
+                  s += ` (95% CI: ${ci[0].toFixed(1)}%-${ci[1].toFixed(1)}%)`;
+                }
+                return s;
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
+    const labels = periods;
+    const datasets = [];
+    const colors = [
+      '#0057B7', '#E74C3C', '#27AE60', '#F39C12', '#9B59B6', 
+      '#1ABC9C', '#34495E', '#E67E22', '#8E44AD', '#16A085'
+    ];
+    
+    series.forEach((s, idx) => {
+      const map = new Map(s.points.map(p => [String(p.time_period), p]));
+      const est = periods.map(tp => { const p = map.get(tp); return p ? p.estimate : null; });
+      const lci = periods.map(tp => { 
+        const p = map.get(tp); 
+        return (p && typeof p.estimate_lci === 'number') ? p.estimate_lci : null; 
+      });
+      const uci = periods.map(tp => { 
+        const p = map.get(tp); 
+        return (p && typeof p.estimate_uci === 'number') ? p.estimate_uci : null; 
+      });
+      
+      const color = colors[idx % colors.length];
+      
+      datasets.push({
+        label: s.label + ' (CI Lower)',
+        data: lci,
+        borderColor: 'transparent',
+        backgroundColor: color + '25',
+        pointRadius: 0,
+        borderWidth: 0,
+        fill: '+1',
+        _ciBand: true
+      });
+      
+      datasets.push({
+        label: s.label + ' (CI Upper)',
+        data: uci,
+        borderColor: 'transparent',
+        backgroundColor: color + '25',
+        pointRadius: 0,
+        borderWidth: 0,
+        fill: false,
+        _ciBand: true
+      });
+      
+      datasets.push({
+        label: s.label || ('Series ' + (idx + 1)),
+        data: est,
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 3,
+        tension: 0.2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      });
+    });
+
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, 
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        scales: {
+          y: {
+            beginAtZero: true, 
+            title: {display: true, text: 'Estimate (%)'},
+            grid: {color: '#E1E5E9'}
+          },
+          x: {
+            title: {display: true, text: 'Time Period'},
+            grid: {color: '#E1E5E9'}
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { 
+              filter: (item, data) => { 
+                const ds = data.datasets[item.datasetIndex]; 
+                return !ds._ciBand; 
+              },
+              usePointStyle: true,
+              padding: 20
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const ds = ctx.dataset;
+                if(ds._ciBand) return null;
+                const v = ctx.parsed.y;
+                let s = (ds.label ? ds.label + ': ' : '') + (v != null ? v.toFixed(1)+'%' : 'NA');
+                return s;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+document.getElementById('q').focus();
+document.getElementById('q').addEventListener('keydown', (e) => { 
+  if(e.key === 'Enter') { 
+    e.preventDefault(); 
+    ask(); 
+  } 
+});
+</script>
+</body></html>
