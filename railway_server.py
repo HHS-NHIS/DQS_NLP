@@ -1553,6 +1553,10 @@ async def root():
                 <p>Advanced AI automatically identifies health topics and routes to the most relevant CDC datasets for accurate results.</p>
             </div>
             <div class="feature">
+                <h3>🔧 Embeddable Widget</h3>
+                <p>Compact 900x300 widget perfect for embedding in websites, dashboards, or applications. Quick Q&A format with brief, accurate answers.</p>
+            </div>
+            <div class="feature">
                 <h3>🔗 CDC Integration</h3>
                 <p>Direct links to official CDC resources and detailed analysis tools for deeper research and verification.</p>
             </div>
@@ -1561,6 +1565,7 @@ async def root():
         <div class="cta-buttons">
             <a href="/nlq" class="btn btn-primary">🚀 Start Querying Data</a>
             <a href="/nlq_tester" class="btn btn-secondary">🧪 Try Example Queries</a>
+            <a href="/widget" class="btn btn-primary">🔧 Compact Widget</a>
         </div>
         
         <div class="examples">
@@ -2457,6 +2462,558 @@ def whoami():
 def health_check():
     return {"status": "healthy", "message": "CDC Health Data API is running"}
 
+# WIDGET FUNCTIONALITY
+# Compact CDC Health Data Widget - Brief Q&A format
+
+def detect_year_preference(query: str) -> str:
+    """Detect year preference from query"""
+    query_lower = query.lower()
+    
+    # Specific year
+    year_match = re.search(r"\b(20\d{2}|19\d{2})\b", query)
+    if year_match:
+        return year_match.group(1)
+    
+    # Recent/latest/last year
+    if any(term in query_lower for term in ["recent", "latest", "last year", "current", "now"]):
+        return "latest"
+    
+    return "all"
+
+def detect_grouping_preference(query: str, structure: Dict[str, Any]):
+    """Detect grouping preference for widget"""
+    ql = query.lower()
+    av = structure.get("available_values", {})
+    groups = av.get("grouping_category", [])
+    subgroups = av.get("group_value", [])
+    
+    # Check for specific demographic terms
+    if any(term in ql for term in ["by sex", "by gender", "men", "women", "male", "female"]):
+        sex_group = next((g for g in groups if "sex" in g.lower()), None)
+        if "men" in ql or "male" in ql:
+            return sex_group, "Male"
+        elif "women" in ql or "female" in ql:
+            return sex_group, "Female"
+        return sex_group, None
+    
+    if any(term in ql for term in ["by race", "by ethnicity", "white", "black", "hispanic"]):
+        race_group = next((g for g in groups if "race" in g.lower() or "hispanic" in g.lower()), None)
+        return race_group, None
+    
+    if any(term in ql for term in ["by age", "children", "adults", "elderly"]):
+        age_group = next((g for g in groups if "age" in g.lower()), None)
+        return age_group, None
+    
+    # Check for specific subgroup mentions
+    for sg in subgroups:
+        if sg.lower() in ql:
+            # Find corresponding group
+            corresponding_group = None
+            for g in groups:
+                if "sex" in g.lower() and sg.lower() in ["male", "female"]:
+                    corresponding_group = g
+                    break
+                elif "race" in g.lower() and any(race in sg.lower() for race in ["white", "black", "hispanic", "asian"]):
+                    corresponding_group = g
+                    break
+            return corresponding_group, sg
+    
+    return None, None
+
+def find_best_indicator_widget(query: str, available_indicators: List[str]):
+    """Find best matching indicator for widget"""
+    if not available_indicators: 
+        return None
+    
+    ql = query.lower()
+    best, score_best = None, -1
+    
+    for ind in available_indicators:
+        il = ind.lower()
+        s = 0
+        
+        # Topic-specific scoring
+        if "suicide" in ql and "suicide" in il:
+            s += 60
+        elif "dental" in ql and any(term in il for term in ["dental", "tooth", "oral"]):
+            s += 60
+        elif "cancer" in ql and "cancer" in il:
+            s += 60
+        elif "heart" in ql and "heart" in il:
+            s += 60
+        elif "drug" in ql and "overdose" in il:
+            s += 60
+        elif "flu" in ql and any(term in il for term in ["flu", "influenza"]):
+            s += 60
+        
+        # Token matching
+        for token in ql.split():
+            if len(token) >= 4 and token in il:
+                s += 10
+        
+        if s > score_best:
+            best, score_best = ind, s
+    
+    return best if score_best >= 10 else None
+
+def format_estimate(estimate, lci=None, uci=None) -> str:
+    """Format estimate with confidence interval"""
+    try:
+        est_num = float(estimate)
+        result = f"{est_num:.1f}%"
+        
+        if lci is not None and uci is not None:
+            try:
+                lci_num = float(lci)
+                uci_num = float(uci)
+                result += f" (95% CI: {lci_num:.1f}%-{uci_num:.1f}%)"
+            except (ValueError, TypeError):
+                pass
+        
+        return result
+    except (ValueError, TypeError):
+        return str(estimate) if estimate else "Data not available"
+
+def get_cdc_topic_link(topic: str) -> str:
+    """Get relevant CDC link for topic"""
+    topic_lower = topic.lower() if topic else ""
+    
+    CDC_LINKS = {
+        "suicide": "https://www.cdc.gov/suicide/index.html",
+        "dental": "https://www.cdc.gov/oralhealth/index.html",
+        "diabetes": "https://www.cdc.gov/diabetes/index.html",
+        "cancer": "https://www.cdc.gov/cancer/index.htm",
+        "heart": "https://www.cdc.gov/heartdisease/index.htm",
+        "drug": "https://www.cdc.gov/overdose/index.html",
+        "flu": "https://www.cdc.gov/vaccines/vpd/flu/index.html",
+        "vaccine": "https://www.cdc.gov/vaccines/index.html"
+    }
+    
+    for key, link in CDC_LINKS.items():
+        if key in topic_lower:
+            return link
+    
+    return "https://www.cdc.gov/"
+
+async def process_widget_query(query: str) -> Dict[str, Any]:
+    """Process query and return brief answer for widget"""
+    
+    # Use existing catalog
+    catalog = await get_catalog()
+    
+    if not catalog:
+        return {
+            "answer": "Sorry, I don't have access to health data right now. Please try again later.",
+            "source": "System Error",
+            "cdc_link": "https://www.cdc.gov/"
+        }
+    
+    # Find topic and dataset
+    canonical_topic = find_canonical_topic(query)
+    dsid = select_best_dataset(query, catalog)
+    
+    if not dsid:
+        cdc_link = get_cdc_topic_link(canonical_topic)
+        return {
+            "answer": f"I couldn't find data for that topic. You might find relevant information at the CDC: {cdc_link}",
+            "source": "No Data Found",
+            "cdc_link": cdc_link
+        }
+    
+    dataset_info = catalog[dsid]
+    structure = dataset_info.get("structure", {})
+    available_indicators = dataset_info.get("available_indicators", [])
+    
+    # Find best indicator
+    indicator = find_best_indicator_widget(query, available_indicators)
+    if not indicator:
+        cdc_link = get_cdc_topic_link(canonical_topic)
+        return {
+            "answer": f"I couldn't find a specific health indicator matching your question. Try the CDC website for more information: {cdc_link}",
+            "source": dataset_info.get("label", "CDC Data"),
+            "cdc_link": cdc_link
+        }
+    
+    # Detect preferences
+    year_pref = detect_year_preference(query)
+    group, subgroup = detect_grouping_preference(query, structure)
+    
+    # Build query
+    filters = {"indicator": indicator}
+    if group:
+        filters["grouping_category"] = group
+    if subgroup:
+        filters["group_value"] = subgroup
+    
+    # Handle year preference
+    available_years = structure.get("available_values", {}).get("year", [])
+    if year_pref == "latest" and available_years:
+        latest_year = max(available_years)
+        filters["year"] = latest_year
+    elif year_pref != "all" and year_pref in available_years:
+        filters["year"] = year_pref
+    
+    # Fetch data
+    url = build_dqs_query_url(dataset_info["domain"], dsid, **filters)
+    data = await fetch(url)
+    
+    if not data:
+        return {
+            "answer": f"No data found for {indicator}. This might be because the specific breakdown you requested isn't available.",
+            "source": dataset_info.get("label", "CDC Data"),
+            "cdc_link": get_cdc_topic_link(canonical_topic)
+        }
+    
+    # Format response
+    return format_widget_response(query, data, filters, year_pref, dataset_info, canonical_topic)
+
+def format_widget_response(query: str, data: List[Dict], filters: Dict, year_pref: str, dataset_info: Dict, canonical_topic: str) -> Dict[str, Any]:
+    """Format brief response for widget"""
+    
+    if not data:
+        return {
+            "answer": "No data available for this query.",
+            "source": dataset_info.get("label", "CDC Data"),
+            "cdc_link": get_cdc_topic_link(canonical_topic)
+        }
+    
+    indicator = filters.get("indicator", "")
+    group = filters.get("grouping_category")
+    subgroup = filters.get("group_value")
+    year = filters.get("year")
+    
+    # Sort data by time period (most recent first)
+    data.sort(key=lambda x: x.get("time_period", ""), reverse=True)
+    
+    # Build response
+    response_parts = []
+    
+    # Handle specific subgroup request
+    if subgroup:
+        subgroup_data = [d for d in data if d.get("subgroup") == subgroup]
+        if subgroup_data:
+            latest = subgroup_data[0]
+            est = format_estimate(latest.get("estimate"), latest.get("estimate_lci"), latest.get("estimate_uci"))
+            time_period = latest.get("time_period", "recent years")
+            response_parts.append(f"For {subgroup.lower()}: {est} in {time_period}.")
+        else:
+            response_parts.append(f"No specific data available for {subgroup.lower()}.")
+    
+    # Handle overall/total population data
+    if not subgroup or len(response_parts) == 0:
+        # Look for total/overall data
+        total_data = [d for d in data if d.get("subgroup", "").lower() in ["total", "overall", "both sexes", "all persons"]]
+        if not total_data:
+            total_data = data  # Use all data if no specific "total" found
+        
+        if total_data:
+            if year_pref == "all" and len(total_data) > 1:
+                # Show trend across years
+                years_shown = []
+                for d in total_data[:3]:  # Show up to 3 most recent years
+                    est = format_estimate(d.get("estimate"), d.get("estimate_lci"), d.get("estimate_uci"))
+                    time_period = d.get("time_period", "unknown")
+                    years_shown.append(f"{est} ({time_period})")
+                
+                response_parts.append(f"Overall rates: {', '.join(years_shown)}.")
+                if len(total_data) > 3:
+                    response_parts.append(f"Showing {len(years_shown)} most recent years of {len(total_data)} available.")
+            
+            else:
+                # Show single most recent or specific year
+                latest = total_data[0]
+                est = format_estimate(latest.get("estimate"), latest.get("estimate_lci"), latest.get("estimate_uci"))
+                time_period = latest.get("time_period", "recent years")
+                
+                if year_pref == "latest":
+                    response_parts.append(f"Most recent data ({time_period}): {est}.")
+                elif year:
+                    response_parts.append(f"In {time_period}: {est}.")
+                else:
+                    response_parts.append(f"Overall rate: {est} ({time_period}).")
+    
+    # Handle grouping explanations
+    if group and not subgroup:
+        # Show breakdown by group
+        group_data = {}
+        for d in data:
+            sg = d.get("subgroup", "Unknown")
+            if sg not in group_data:
+                group_data[sg] = d
+        
+        if len(group_data) > 1:
+            breakdown_parts = []
+            for sg, d in list(group_data.items())[:3]:  # Show top 3 groups
+                est = format_estimate(d.get("estimate"), d.get("estimate_lci"), d.get("estimate_uci"))
+                breakdown_parts.append(f"{sg}: {est}")
+            
+            response_parts.append(f"By {group.lower()}: {', '.join(breakdown_parts)}.")
+            if len(group_data) > 3:
+                response_parts.append(f"Showing top 3 of {len(group_data)} groups.")
+    
+    # Validation check
+    if not response_parts:
+        response_parts.append("Data is available but couldn't be formatted properly.")
+    
+    answer = " ".join(response_parts)
+    
+    # Add context about the indicator
+    source_note = f"Data from {dataset_info.get('label', 'CDC dataset')} on {indicator.lower()}."
+    
+    return {
+        "answer": answer,
+        "source": source_note,
+        "cdc_link": get_cdc_topic_link(canonical_topic),
+        "data_points": len(data)
+    }
+
+@app.post("/v1/widget/ask")
+async def widget_ask(body: Dict[str, Any] = Body(...)):
+    """Widget endpoint for brief Q&A"""
+    query = str(body.get("question", "")).strip()
+    
+    if not query:
+        return JSONResponse({
+            "answer": "Please ask a question about health statistics.",
+            "source": "Widget",
+            "cdc_link": "https://www.cdc.gov/"
+        })
+    
+    try:
+        result = await process_widget_query(query)
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({
+            "answer": "Sorry, I encountered an error processing your question. Please try rephrasing it.",
+            "source": "Error",
+            "cdc_link": "https://www.cdc.gov/",
+            "error": str(e)
+        }, status_code=500)
+
+# Widget HTML Interface
+WIDGET_HTML = '''<!DOCTYPE html>
+<html><head>
+<meta charset='utf-8'>
+<title>CDC Health Data Widget</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f8f9fa;
+  height: 300px;
+  overflow-y: auto;
+}
+.widget-container {
+  max-width: 900px;
+  height: 100%;
+  background: white;
+  border: 1px solid #e1e5e9;
+  display: flex;
+  flex-direction: column;
+}
+.widget-header {
+  background: linear-gradient(135deg, #0057B7 0%, #003D82 100%);
+  color: white;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.widget-content {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.question-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.question-input:focus {
+  border-color: #0057B7;
+}
+.ask-button {
+  background: #0057B7;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  align-self: flex-start;
+}
+.ask-button:hover {
+  background: #003D82;
+}
+.ask-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+.response-area {
+  flex: 1;
+  min-height: 120px;
+  background: #f8f9fa;
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+.answer {
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+.source {
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.cdc-link {
+  color: #0057B7;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+.cdc-link:hover {
+  text-decoration: underline;
+}
+.loading {
+  color: #6c757d;
+  font-style: italic;
+}
+.error {
+  color: #dc3545;
+  background: #f8d7da;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+}
+.examples {
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+.example-link {
+  color: #0057B7;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-right: 8px;
+}
+</style>
+</head><body>
+
+<div class="widget-container">
+  <div class="widget-header">
+    🏥 CDC Health Data Assistant
+  </div>
+  
+  <div class="widget-content">
+    <input 
+      type="text" 
+      id="questionInput" 
+      class="question-input" 
+      placeholder="Ask about health statistics (e.g., 'diabetes rates in adults')"
+      maxlength="200"
+    >
+    
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button id="askButton" class="ask-button">Ask</button>
+      <div class="examples">
+        Examples: 
+        <span class="example-link" onclick="setQuestion('diabetes in adults')">diabetes rates</span>
+        <span class="example-link" onclick="setQuestion('flu vaccination children')">flu shots</span>
+        <span class="example-link" onclick="setQuestion('suicide rates by race')">suicide by race</span>
+      </div>
+    </div>
+    
+    <div id="responseArea" class="response-area">
+      <div style="color: #6c757d; text-align: center; margin-top: 40px;">
+        Ask a question about health statistics to get started.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const questionInput = document.getElementById('questionInput');
+const askButton = document.getElementById('askButton');
+const responseArea = document.getElementById('responseArea');
+
+function setQuestion(text) {
+  questionInput.value = text;
+  questionInput.focus();
+}
+
+async function askQuestion() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+  
+  askButton.disabled = true;
+  responseArea.innerHTML = '<div class="loading">Searching health data...</div>';
+  
+  try {
+    const response = await fetch('/v1/widget/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question })
+    });
+    
+    const data = await response.json();
+    
+    let html = '';
+    if (data.answer) {
+      html += `<div class="answer">${data.answer}</div>`;
+    }
+    if (data.source) {
+      html += `<div class="source">${data.source}</div>`;
+    }
+    if (data.cdc_link) {
+      html += `<a href="${data.cdc_link}" target="_blank" class="cdc-link">More info at CDC →</a>`;
+    }
+    
+    if (!response.ok) {
+      html = `<div class="error">Error: ${data.answer || 'Something went wrong'}</div>`;
+    }
+    
+    responseArea.innerHTML = html;
+    
+  } catch (error) {
+    responseArea.innerHTML = `<div class="error">Connection error. Please try again.</div>`;
+  } finally {
+    askButton.disabled = false;
+  }
+}
+
+askButton.addEventListener('click', askQuestion);
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    askQuestion();
+  }
+});
+
+// Focus input on load
+questionInput.focus();
+</script>
+
+</body></html>'''
+
+@app.get("/widget")
+def widget_interface():
+    """Serve the compact widget interface"""
+    return HTMLResponse(WIDGET_HTML)
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8040))
@@ -2470,8 +3027,10 @@ if __name__ == "__main__":
     print("🌐 Railway deployment ready!")
     print("📄 Required: dqs_catalog.csv and dqs_keywords.json files")
     print("🌍 Access the web interface at:")
+    print("   • Landing page: /")
     print("   • Main interface: /nlq")
     print("   • Example queries: /nlq_tester")
-    print("   • Landing page: /")
+    print("   • Compact widget: /widget (900x300 iframe)")
+    print("   • Widget API: /v1/widget/ask")
     
     uvicorn.run(app, host="0.0.0.0", port=port)
