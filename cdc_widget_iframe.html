@@ -119,6 +119,7 @@ body {
 .answer {
   color: #2c3e50;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 .source {
   color: #6c757d;
@@ -220,6 +221,7 @@ body {
 </div>
 
 <script>
+// Use SAME API as index.html - the /v1/nlq endpoint that works!
 const API_BASE_URL = 'https://dqsnlp-production.up.railway.app';
 const questionInput = document.getElementById('questionInput');
 const askButton = document.getElementById('askButton');
@@ -239,19 +241,21 @@ async function askQuestion() {
   responseArea.innerHTML = '<div class="loading">Searching CDC health data</div>';
   
   try {
-    const response = await fetch(`${API_BASE_URL}/v1/widget/ask`, {
+    // Use SAME API endpoint as index.html - /v1/nlq (NOT /v1/widget/ask)
+    const response = await fetch(`${API_BASE_URL}/v1/nlq`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: question })
+      body: JSON.stringify({ q: question })  // Use 'q' parameter like index.html
     });
     
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.answer || data.error || 'API request failed');
+      throw new Error(data.error || 'API request failed');
     }
     
-    displayResponse(data, true);
+    // Format the response for widget display
+    displayResponse(data);
     statusIndicator.className = 'status-indicator';
     
   } catch (error) {
@@ -263,24 +267,64 @@ async function askQuestion() {
   }
 }
 
-function displayResponse(data, success = true) {
+function displayResponse(data) {
   let html = '';
   
-  if (success && data.answer) {
-    html += `<div class="answer">${escapeHtml(data.answer)}</div>`;
+  if (data.error) {
+    // Handle error case
+    html = `<div class="error">${escapeHtml(data.error)}</div>`;
+  } else if (data.data_count && data.data_count > 0) {
+    // We have data - format it simply for the widget
+    const indicator = data.matches?.indicator || 'Health indicator';
+    const group = data.matches?.grouping_category;
+    const year = data.matches?.year;
     
-    if (data.source) {
-      html += `<div class="source">${escapeHtml(data.source)}</div>`;
+    // Create a brief summary from the chart data
+    let answer = '';
+    if (data.chart_series && data.chart_series.length > 0) {
+      const series = data.chart_series[0]; // Take first series
+      if (series.points && series.points.length > 0) {
+        const latestPoint = series.points[series.points.length - 1]; // Most recent data
+        const estimate = latestPoint.estimate;
+        const period = latestPoint.time_period;
+        
+        if (data.chart_series.length > 1) {
+          // Multiple groups - show breakdown
+          let parts = [];
+          data.chart_series.forEach(s => {
+            if (s.points && s.points.length > 0) {
+              const pt = s.points[s.points.length - 1];
+              const ci = (pt.estimate_lci && pt.estimate_uci) ? ` (95% CI: ${pt.estimate_lci.toFixed(1)}%-${pt.estimate_uci.toFixed(1)}%)` : '';
+              parts.push(`${s.label}: ${pt.estimate.toFixed(1)}%${ci}`);
+            }
+          });
+          answer = `${indicator} by ${group?.toLowerCase() || 'group'}: ${parts.join(', ')} in ${period}.`;
+        } else {
+          // Single overall number
+          const ci = (latestPoint.estimate_lci && latestPoint.estimate_uci) ? ` (95% CI: ${latestPoint.estimate_lci.toFixed(1)}%-${latestPoint.estimate_uci.toFixed(1)}%)` : '';
+          answer = `Overall rate: ${estimate.toFixed(1)}%${ci} in ${period}.`;
+        }
+      }
     }
     
-    if (data.cdc_link) {
-      html += `<a href="${escapeHtml(data.cdc_link)}" target="_blank" class="cdc-link">More info at CDC →</a>`;
+    if (!answer) {
+      answer = `Found ${data.data_count} data points for ${indicator}.`;
     }
     
-    statusIndicator.className = 'status-indicator';
+    html += `<div class="answer">${answer}</div>`;
+    
+    // Add source info
+    const datasetLabel = data.dataset_info?.label || 'CDC dataset';
+    html += `<div class="source">Data from ${datasetLabel} on ${indicator.toLowerCase()}.</div>`;
+    
+    // Add CDC link
+    if (data.chart_dqs_url) {
+      html += `<a href="${data.chart_dqs_url}" target="_blank" class="cdc-link">More info at CDC →</a>`;
+    }
+    
   } else {
-    html = `<div class="error">${escapeHtml(data.answer || 'Unknown error occurred')}</div>`;
-    statusIndicator.className = 'status-indicator offline';
+    // No data found
+    html = `<div class="answer">Sorry, we couldn't find data that matches your question. Try asking about diabetes, heart disease, or other common health topics.</div>`;
   }
   
   responseArea.innerHTML = html;
@@ -302,6 +346,7 @@ questionInput.addEventListener('keydown', (e) => {
 
 questionInput.focus();
 
+// Health check
 setTimeout(async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/health`);
