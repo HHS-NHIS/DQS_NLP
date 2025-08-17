@@ -274,4 +274,47 @@ function displayResponse(data, success = true) {
     }
     
     if (data.cdc_link) {
-      html += `<a href="${escapeHtml(data.cdc_link)}" target="_blank" class="cdc-link">More info at CDC →</a>
+      html += `<a href="${escapeHtml(data.cdc_link)}" target="_blank" class="cdc-link">More info at CDC →</a>`;
+    }
+    
+    statusIndicator.className = 'status-indicator';
+  } else {
+    html = `<div class="error">${escapeHtml(data.answer || 'Unknown error occurred')}</div>`;
+    statusIndicator.className = 'status-indicator offline';
+  }
+  
+  responseArea.innerHTML = html;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+askButton.addEventListener('click', askQuestion);
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    askQuestion();
+  }
+});
+
+questionInput.focus();
+
+setTimeout(async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    if (response.ok) {
+      statusIndicator.className = 'status-indicator';
+    } else {
+      statusIndicator.className = 'status-indicator offline';
+    }
+  } catch (error) {
+    statusIndicator.className = 'status-indicator offline';
+    console.warn('API health check failed:', error);
+  }
+}, 500);
+</script>
+
+</body></html>
