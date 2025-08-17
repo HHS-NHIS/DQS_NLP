@@ -429,7 +429,7 @@ def load_user_keywords():
             print(f"✅ Configured {len(DQS_TOPIC_MAPPING)} DQS mappings")
             
         except Exception as e:
-            print(f"⚠ Error loading keywords: {e}")
+            print(f"⚠️ Error loading keywords: {e}")
             LOADED_KEYWORDS = {}
             DATASET_METADATA = {}
             TOPIC_ROUTES = {}
@@ -512,7 +512,7 @@ async def discover_dataset_structure(domain: str, dsid: str):
             print(f"📊 {dsid}: DQS-like={structure['dqs_like']}, indicators={len(av.get('indicator', []))}")
     
     except Exception as e:
-        print(f"⚠ Error discovering structure for {dsid}: {e}")
+        print(f"⚠️ Error discovering structure for {dsid}: {e}")
         structure["dqs_like"] = False
     
     return structure
@@ -1395,6 +1395,868 @@ def format_results_for_chart(res: Dict[str, Any]) -> Dict[str, Any]:
 
     return out
 
+# HTML INTERFACE ENDPOINTS
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Main landing page"""
+    return HTMLResponse(content="""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDC Health Data Query System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            color: #333;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .subtitle {
+            font-size: 1.3em;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        .feature {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid #3498db;
+            text-align: left;
+            transition: transform 0.3s ease;
+        }
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .feature h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .examples {
+            background: #ecf0f1;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .examples h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .example-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .example-query {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+            font-style: italic;
+            color: #555;
+        }
+        .status-section {
+            background: #2ecc71;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 CDC Health Data Query System</h1>
+        <p class="subtitle">Ask questions about health data in plain English and get instant, interactive visualizations</p>
+        
+        <div class="status-section">
+            <h3>✅ System Status: Online & Ready</h3>
+            <p>Railway deployment active • Enhanced topic matching • Comprehensive health data coverage</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>🤖 Natural Language Queries</h3>
+                <p>Ask questions like "What are suicide rates by gender?" or "Show me dental care statistics for children" and get instant results.</p>
+            </div>
+            <div class="feature">
+                <h3>📊 Interactive Visualizations</h3>
+                <p>Get beautiful charts with confidence intervals, trend lines, and smart narratives that explain what the data means.</p>
+            </div>
+            <div class="feature">
+                <h3>🎯 Smart Topic Detection</h3>
+                <p>Advanced AI automatically identifies health topics and routes to the most relevant CDC datasets for accurate results.</p>
+            </div>
+            <div class="feature">
+                <h3>🔗 CDC Integration</h3>
+                <p>Direct links to official CDC resources and detailed analysis tools for deeper research and verification.</p>
+            </div>
+        </div>
+        
+        <div class="cta-buttons">
+            <a href="/nlq" class="btn btn-primary">🚀 Start Querying Data</a>
+            <a href="/nlq_tester" class="btn btn-secondary">🧪 Try Example Queries</a>
+        </div>
+        
+        <div class="examples">
+            <h3>Example Questions You Can Ask:</h3>
+            <div class="example-queries">
+                <div class="example-query">"What are suicide rates by state?"</div>
+                <div class="example-query">"Show me dental care statistics for children"</div>
+                <div class="example-query">"Cancer mortality trends by gender"</div>
+                <div class="example-query">"Drug overdose deaths in 2022"</div>
+                <div class="example-query">"Heart disease rates by age group"</div>
+                <div class="example-query">"Flu vaccination coverage by race"</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Powered by FastAPI • Railway Cloud • CDC Open Data</strong></p>
+            <p>Version 1.0.0-railway | <a href="/health" style="color: #3498db;">Health Check</a> | <a href="/__version" style="color: #3498db;">API Info</a></p>
+        </div>
+    </div>
+</body>
+</html>
+    """)
+
+@app.get("/nlq", response_class=HTMLResponse)
+async def nlq_interface():
+    """Main query interface"""
+    return HTMLResponse(content="""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDC Health Data Query Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 2.2em;
+        }
+        .header p {
+            color: #7f8c8d;
+            margin: 0;
+            font-size: 1.1em;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .query-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .query-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #queryInput {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #3498db;
+            border-radius: 50px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        #queryInput:focus {
+            border-color: #2980b9;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        #askButton {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        #askButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        #askButton:disabled {
+            background: #bdc3c7;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .quick-queries {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .quick-queries h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .quick-query-btn {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 15px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .quick-query-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .results-section {
+            padding: 30px;
+            min-height: 400px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #2ecc71;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .chart-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .narrative {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #3498db;
+            line-height: 1.6;
+        }
+        .switch-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .switch-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+        .switch-options {
+            margin: 15px 0;
+            text-align: center;
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .back-btn:hover {
+            background: rgba(41, 128, 185, 0.9);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">← Back to Home</a>
+    
+    <div class="header">
+        <h1>🔍 Health Data Query Interface</h1>
+        <p>Ask questions about health data in plain English</p>
+    </div>
+    
+    <div class="main-container">
+        <div class="query-section">
+            <div class="query-container">
+                <input type="text" id="queryInput" placeholder="Ask a health question... (e.g., 'What are suicide rates by gender?')" />
+                <button id="askButton" onclick="ask()">Ask</button>
+            </div>
+            
+            <div class="quick-queries">
+                <h4>Quick Examples:</h4>
+                <button class="quick-query-btn" onclick="setQuery('suicide rates by gender')">Suicide rates by gender</button>
+                <button class="quick-query-btn" onclick="setQuery('dental care for children')">Dental care for children</button>
+                <button class="quick-query-btn" onclick="setQuery('cancer mortality by state')">Cancer mortality by state</button>
+                <button class="quick-query-btn" onclick="setQuery('drug overdose deaths 2022')">Drug overdose deaths 2022</button>
+                <button class="quick-query-btn" onclick="setQuery('heart disease by age')">Heart disease by age</button>
+                <button class="quick-query-btn" onclick="setQuery('flu vaccination coverage')">Flu vaccination coverage</button>
+            </div>
+        </div>
+        
+        <div class="results-section">
+            <div id="results">
+                <div style="text-align: center; padding: 50px; color: #7f8c8d;">
+                    <h3>🚀 Ready to explore health data!</h3>
+                    <p>Enter a question above or click one of the example queries to get started.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChart = null;
+
+        function setQuery(query) {
+            document.getElementById('queryInput').value = query;
+        }
+
+        async function ask() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) return;
+
+            const button = document.getElementById('askButton');
+            const results = document.getElementById('results');
+            
+            // Disable button and show loading
+            button.disabled = true;
+            button.textContent = 'Searching...';
+            results.innerHTML = '<div class="loading">Analyzing your question and searching health data</div>';
+
+            try {
+                const response = await fetch('/v1/nlq', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ q: query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                results.innerHTML = `<div class="error"><strong>Error:</strong> ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Ask';
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            let html = '';
+
+            // Success message
+            html += `<div class="success"><strong>✅ Query successful!</strong> Found ${data.data_count} data points from CDC dataset: ${data.dataset_info.label}</div>`;
+
+            // Chart
+            if (data.chart_series && data.chart_series.length > 0) {
+                html += `
+                    <div class="chart-container">
+                        <div class="chart-title">${data.matches.indicator || 'Health Data Visualization'}</div>
+                        <canvas id="resultsChart" width="400" height="200"></canvas>
+                    </div>
+                `;
+            }
+
+            // Smart narrative
+            if (data.smart_narrative) {
+                html += `<div class="narrative">${data.smart_narrative}</div>`;
+            }
+
+            // Raw data info
+            html += `
+                <div class="chart-container">
+                    <h4>📊 Query Details</h4>
+                    <p><strong>Dataset:</strong> ${data.dataset_info.label}</p>
+                    <p><strong>Indicator:</strong> ${data.matches.indicator || 'N/A'}</p>
+                    <p><strong>Grouping:</strong> ${data.matches.grouping_category || 'Overall'}</p>
+                    <p><strong>Data Points:</strong> ${data.data_count}</p>
+                    ${data.chart_dqs_url ? `<p><strong>CDC Analysis Tools:</strong> <a href="${data.chart_dqs_url}" target="_blank">View in CDC DQS →</a></p>` : ''}
+                </div>
+            `;
+
+            results.innerHTML = html;
+
+            // Create chart if data exists
+            if (data.chart_series && data.chart_series.length > 0) {
+                createChart(data.chart_series);
+            }
+        }
+
+        function createChart(chartSeries) {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Prepare datasets
+            const datasets = chartSeries.map((series, index) => {
+                const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+                const color = colors[index % colors.length];
+                
+                return {
+                    label: series.label,
+                    data: series.points.map(point => ({
+                        x: point.time_period,
+                        y: point.estimate,
+                        lci: point.estimate_lci,
+                        uci: point.estimate_uci
+                    })),
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.1
+                };
+            });
+
+            // Get all unique time periods for x-axis
+            const allPeriods = [...new Set(
+                chartSeries.flatMap(series => 
+                    series.points.map(point => point.time_period)
+                )
+            )].sort();
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allPeriods,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: false
+                        },
+                        legend: {
+                            display: chartSeries.length > 1,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataPoint = context.raw;
+                                    if (dataPoint.lci && dataPoint.uci) {
+                                        return `95% CI: ${dataPoint.lci.toFixed(1)}% - ${dataPoint.uci.toFixed(1)}%`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Percentage (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time Period'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Allow Enter key to submit query
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                ask();
+            }
+        });
+
+        // Focus on input when page loads
+        document.getElementById('queryInput').focus();
+    </script>
+</body>
+</html>
+    """)
+
+@app.get("/nlq_tester", response_class=HTMLResponse)
+async def nlq_tester():
+    """Test interface with predefined queries"""
+    return HTMLResponse(content="""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDC Health Data - Example Queries</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            color: #7f8c8d;
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .example-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 5px solid #3498db;
+        }
+        .example-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        .example-card h3 {
+            color: #2c3e50;
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+        }
+        .example-query {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-style: italic;
+            color: #555;
+            margin: 15px 0;
+            border-left: 3px solid #3498db;
+        }
+        .try-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .try-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            background: rgba(41, 128, 185, 0.9);
+            transform: translateY(-2px);
+        }
+        .main-link {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .main-link a {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .main-link a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .category {
+            margin-bottom: 15px;
+        }
+        .category h4 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">← Back to Home</a>
+    
+    <div class="header">
+        <h1>🧪 Example Health Data Queries</h1>
+        <p>Try these sample questions to see what our system can do</p>
+    </div>
+    
+    <div class="examples-grid">
+        <div class="example-card">
+            <h3>🧠 Mental Health & Suicide</h3>
+            <div class="category">
+                <h4>Basic Queries:</h4>
+                <div class="example-query">"What are suicide rates by gender?"</div>
+                <div class="example-query">"Suicide deaths by state in 2021"</div>
+                <div class="example-query">"Show me suicide trends over time"</div>
+            </div>
+            <a href="/nlq?q=suicide rates by gender" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>🦷 Oral Health & Dental Care</h3>
+            <div class="category">
+                <h4>Dental Statistics:</h4>
+                <div class="example-query">"Dental care statistics for children"</div>
+                <div class="example-query">"Tooth decay by age group"</div>
+                <div class="example-query">"Dental visits by income level"</div>
+            </div>
+            <a href="/nlq?q=dental care statistics for children" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>🎗️ Cancer Statistics</h3>
+            <div class="category">
+                <h4>Cancer Data:</h4>
+                <div class="example-query">"Cancer mortality by state"</div>
+                <div class="example-query">"Breast cancer rates by race"</div>
+                <div class="example-query">"Cancer deaths trends by gender"</div>
+            </div>
+            <a href="/nlq?q=cancer mortality by state" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>💊 Drug Overdose & Substance Use</h3>
+            <div class="category">
+                <h4>Overdose Statistics:</h4>
+                <div class="example-query">"Drug overdose deaths in 2022"</div>
+                <div class="example-query">"Opioid deaths by state"</div>
+                <div class="example-query">"Overdose trends by age group"</div>
+            </div>
+            <a href="/nlq?q=drug overdose deaths in 2022" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>❤️ Heart Disease & Cardiovascular</h3>
+            <div class="category">
+                <h4>Heart Health:</h4>
+                <div class="example-query">"Heart disease rates by age group"</div>
+                <div class="example-query">"Cardiovascular deaths by gender"</div>
+                <div class="example-query">"Heart attack rates by state"</div>
+            </div>
+            <a href="/nlq?q=heart disease rates by age group" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>💉 Vaccination Coverage</h3>
+            <div class="category">
+                <h4>Immunization Data:</h4>
+                <div class="example-query">"Flu vaccination coverage by race"</div>
+                <div class="example-query">"Vaccine rates for children"</div>
+                <div class="example-query">"Influenza shots by age group"</div>
+            </div>
+            <a href="/nlq?q=flu vaccination coverage by race" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>⚖️ Obesity & Weight Status</h3>
+            <div class="category">
+                <h4>Weight Statistics:</h4>
+                <div class="example-query">"Obesity rates by education level"</div>
+                <div class="example-query">"Childhood obesity by state"</div>
+                <div class="example-query">"Weight status trends by gender"</div>
+            </div>
+            <a href="/nlq?q=obesity rates by education level" class="try-btn">Try These Queries →</a>
+        </div>
+        
+        <div class="example-card">
+            <h3>📊 Complex Demographic Queries</h3>
+            <div class="category">
+                <h4>Advanced Breakdowns:</h4>
+                <div class="example-query">"Show health data by race and gender"</div>
+                <div class="example-query">"Compare rural vs urban health outcomes"</div>
+                <div class="example-query">"Health trends by income and education"</div>
+            </div>
+            <a href="/nlq?q=health data by race and gender" class="try-btn">Try These Queries →</a>
+        </div>
+    </div>
+    
+    <div class="main-link">
+        <a href="/nlq">🔍 Open Main Query Interface</a>
+    </div>
+</body>
+</html>
+    """)
+
+# API ENDPOINTS (keeping all existing ones)
+
 @app.post("/v1/nlq")
 async def nlq(body: Dict[str, Any] = Body(...)):
     q = str(body.get("q","")).strip()
@@ -1605,7 +2467,11 @@ if __name__ == "__main__":
     print("🗂️ Uses dqs_keywords.json for enhanced matching!")
     print("🔧 COMPREHENSIVE TOPIC FIXES APPLIED!")
     print(f"🚀 Starting on port {port}")
-    print("🌍 Railway deployment ready!")
+    print("🌐 Railway deployment ready!")
     print("📄 Required: dqs_catalog.csv and dqs_keywords.json files")
+    print("🌍 Access the web interface at:")
+    print("   • Main interface: /nlq")
+    print("   • Example queries: /nlq_tester")
+    print("   • Landing page: /")
     
     uvicorn.run(app, host="0.0.0.0", port=port)
