@@ -136,7 +136,35 @@ def get_dqs_topic_slug(indicator: str, query: str = "", dataset_info: dict = Non
     if "suicide" in indicator_clean:
         return "suicide"
     
+    # Special handling for healthcare spending topics
+    if any(term in indicator_clean for term in ["spending", "expenditure", "cost"]):
+        if "personal healthcare" in indicator_clean:
+            return "personal-healthcare-spending"
+        elif "national health" in indicator_clean:
+            return "national-health-expenditures"
+        elif "physician" in indicator_clean or "clinical services" in indicator_clean:
+            return "physician-and-clinical-services"
+        elif "hospital care" in indicator_clean:
+            return "hospital-care"
+        elif "dental services" in indicator_clean:
+            return "dental-services"
+        elif "prescription" in indicator_clean and "drug" in indicator_clean:
+            return "prescription-drugs"
+        elif "nursing care" in indicator_clean:
+            return "nursing-care-facilities"
+        elif "home health" in indicator_clean:
+            return "home-health-care"
+        else:
+            return "personal-healthcare-spending"  # Default for spending queries
+    
+    # Enhanced DQS mapping lookup
     if DQS_TOPIC_MAPPING:
+        # First try exact matches
+        for key, value in DQS_TOPIC_MAPPING.items():
+            if key.lower() == indicator_clean:
+                return value
+        
+        # Then try substring matches
         for key, value in DQS_TOPIC_MAPPING.items():
             if key.lower() in indicator_clean or indicator_clean in key.lower():
                 return value
@@ -149,6 +177,15 @@ def get_dqs_topic_slug(indicator: str, query: str = "", dataset_info: dict = Non
             return "receipt-of-influenza-vaccination-among-children"
         else:
             return "receipt-of-influenza-vaccination-among-adults"
+    
+    # Enhanced topic detection for common health topics
+    if "dental" in indicator_clean or "oral" in indicator_clean:
+        if "caries" in indicator_clean or "decay" in indicator_clean:
+            return "total-dental-caries-in-permanent-teeth-in-adults"
+        elif "loss" in indicator_clean:
+            return "complete-tooth-loss"
+        else:
+            return "dental-exam-or-cleaning"
     
     return _dqs_slug(indicator_clean)
 
@@ -169,272 +206,48 @@ def get_dqs_group_slug(group: str) -> str:
 def load_user_keywords():
     global LOADED_KEYWORDS, DATASET_METADATA, TOPIC_ROUTES, DQS_TOPIC_MAPPING, GROUPING_CATEGORIES
     
+    print("📄 Loading keywords from dqs_keywords.json...")
+    
     if os.path.exists(USER_KEYWORDS_PATH):
         try:
             with open(USER_KEYWORDS_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
+            # Load all sections
             LOADED_KEYWORDS = data.get("topic_keywords", {})
             DATASET_METADATA = data.get("dataset_metadata", {})
             TOPIC_ROUTES = data.get("topic_routes", {})
             DQS_TOPIC_MAPPING = data.get("dqs_topic_mapping", {})
             GROUPING_CATEGORIES = data.get("grouping_categories", {})
             
-            # COMPREHENSIVE FIXES FOR ALL TOPICS
-            print("🔧 APPLYING COMPREHENSIVE TOPIC FIXES...")
+            print(f"✅ Successfully loaded:")
+            print(f"   - {len(LOADED_KEYWORDS)} topic keywords")
+            print(f"   - {len(DATASET_METADATA)} dataset entries")
+            print(f"   - {len(TOPIC_ROUTES)} topic routes")
+            print(f"   - {len(DQS_TOPIC_MAPPING)} DQS mappings")
+            print(f"   - {len(GROUPING_CATEGORIES)} grouping categories")
             
-            # COMPREHENSIVE TOPIC ROUTING FIXES
-            essential_routes = {
-                "suicide": {"adult": "w26f-tf3h", "surveillance": "g4ie-h725"},
-                "dental care": {"adult": "gj3i-hsbz", "oral_health": "36ue-xht5"},
-                "oral health": {"adult": "gj3i-hsbz", "detailed": "36ue-xht5"},
-                "cancer": {"adult": "gj3i-hsbz", "mortality": "h3hw-hzvg"},
-                "heart disease": {"adult": "gj3i-hsbz", "mortality": "7aq9-prdf"},
-                "drug overdose": {"mortality": "rdjz-vn2n", "surveillance": "g4ie-h725"},
-                "cholesterol": {"adult": "gj3i-hsbz", "measured": "6tn6-vc33"},
-                "hypertension": {"adult": "gj3i-hsbz", "measured": "va5e-efw9"},
-                "obesity": {"adult": "gj3i-hsbz", "measured": "be57-s94j", "child": "uzn2-cq9f"},
-                "nutrition": {"detailed": "8ekv-ep3s", "surveillance": "g4ie-h725"},
-                "functioning": {"adult": "gj3i-hsbz", "detailed": "btv3-srcc"},
-                "prescription drugs": {"adult": "gj3i-hsbz", "detailed": "kusj-ex57"},
-                "substance use": {"adult": "gj3i-hsbz", "students": "v3ih-gzx4"},
-                "emergency department": {"adult": "gj3i-hsbz", "visits": "e4ec-z5aa"},
-                "hospital visits": {"admissions": "4q35-rqzk", "adult": "gj3i-hsbz"},
-                "infectious diseases": {"surveillance": "v7tk-n6v3"},
-                "herpes": {"surveillance": "v7tk-n6v3"},
-                "infant mortality": {"surveillance": "j7ym-uwqy"},
-                "fetal mortality": {"surveillance": "wd75-kcmv"},
-                "low birthweight": {"surveillance": "rg3t-4dpf"}
-            }
-            
-            for topic, routes in essential_routes.items():
-                if topic not in TOPIC_ROUTES:
-                    TOPIC_ROUTES[topic] = {}
-                TOPIC_ROUTES[topic].update(routes)
-                print(f"✅ Fixed routing for {topic}")
-            
-            # COMPREHENSIVE DATASET METADATA FIXES
-            metadata_updates = {
-                "w26f-tf3h": {"topics": ["suicide", "mortality", "vital statistics", "death rates"]},
-                "36ue-xht5": {"topics": ["oral health", "dental care", "dental caries", "tooth loss", "teeth"]},
-                "h3hw-hzvg": {"topics": ["cancer", "cancer mortality", "death rates", "malignant neoplasms"]},
-                "rdjz-vn2n": {"topics": ["drug overdose", "mortality", "opioids", "substance abuse", "overdose deaths"]},
-                "7aq9-prdf": {"topics": ["heart disease", "heart disease mortality", "cardiovascular", "death rates"]},
-                "6tn6-vc33": {"topics": ["cholesterol", "high cholesterol", "hypercholesterolemia", "cardiovascular"]},
-                "va5e-efw9": {"topics": ["hypertension", "blood pressure", "high blood pressure", "cardiovascular"]},
-                "be57-s94j": {"topics": ["obesity", "overweight", "bmi", "weight status", "adults"]},
-                "uzn2-cq9f": {"topics": ["obesity", "childhood obesity", "children", "adolescents", "bmi"]},
-                "8ekv-ep3s": {"topics": ["nutrition", "diet", "dietary intake", "calcium", "fiber", "iron", "sodium"]},
-                "btv3-srcc": {"topics": ["functioning", "disability", "functional difficulties", "limitations"]},
-                "kusj-ex57": {"topics": ["prescription drugs", "medication", "drug use", "polypharmacy"]},
-                "v3ih-gzx4": {"topics": ["substance use", "alcohol", "smoking", "drugs", "students", "youth"]},
-                "e4ec-z5aa": {"topics": ["emergency department", "ed visits", "hospital visits", "diagnoses"]},
-                "4q35-rqzk": {"topics": ["hospital", "admissions", "outpatient", "surgery", "length of stay"]},
-                "v7tk-n6v3": {"topics": ["infectious diseases", "herpes", "hsv", "infections"]},
-                "j7ym-uwqy": {"topics": ["infant mortality", "neonatal", "postneonatal", "infant deaths"]},
-                "wd75-kcmv": {"topics": ["fetal mortality", "perinatal", "fetal deaths", "birth outcomes"]},
-                "rg3t-4dpf": {"topics": ["birth", "birthweight", "low birthweight", "birth outcomes"]},
-                "8miz-siyd": {"topics": ["healthcare capacity", "hospital beds", "healthcare resources"]},
-                "yib5-h3pw": {"topics": ["dentists", "dental workforce", "healthcare capacity"]},
-                "7siw-u4fz": {"topics": ["healthcare employment", "wages", "workforce", "healthcare capacity"]},
-                "s57w-7gbe": {"topics": ["healthcare spending", "national spending", "health expenditures"]},
-                "gu48-2cs8": {"topics": ["healthcare spending", "personal spending", "health costs"]}
-            }
-            
-            for dsid, updates in metadata_updates.items():
-                if dsid in DATASET_METADATA:
-                    current_topics = DATASET_METADATA[dsid].get("topics", [])
-                    new_topics = list(set(current_topics + updates["topics"]))
-                    DATASET_METADATA[dsid]["topics"] = new_topics
-                    print(f"✅ Enhanced {dsid} metadata with {len(updates['topics'])} topics")
-            
-            # COMPREHENSIVE KEYWORD FIXES  
-            essential_keywords = {
-                # Suicide keywords
-                "suicide": "suicide",
-                "suicidal": "suicide", 
-                "self-harm": "suicide",
-                "self harm": "suicide",
-                "suicide deaths": "suicide",
-                "suicide rates": "suicide",
-                
-                # Dental/Oral Health keywords
-                "dental": "dental care",
-                "dental care": "dental care",
-                "teeth": "dental care",
-                "tooth": "dental care",
-                "oral health": "oral health",
-                "dental caries": "oral health",
-                "caries": "oral health",
-                "tooth decay": "oral health",
-                "tooth loss": "oral health",
-                "dental exam": "dental care",
-                "dental cleaning": "dental care",
-                "dentist": "dental care",
-                
-                # Cancer keywords
-                "cancer": "cancer",
-                "malignant": "cancer",
-                "tumor": "cancer",
-                "breast cancer": "cancer",
-                "lung cancer": "cancer",
-                "prostate cancer": "cancer",
-                "cervical cancer": "cancer",
-                "skin cancer": "cancer",
-                "cancer deaths": "cancer",
-                
-                # Heart Disease keywords
-                "heart disease": "heart disease",
-                "heart attack": "heart disease",
-                "cardiac": "heart disease",
-                "coronary": "heart disease",
-                "cardiovascular": "heart disease",
-                "angina": "angina",
-                
-                # Drug Overdose keywords
-                "overdose": "drug overdose",
-                "drug overdose": "drug overdose",
-                "opioid": "drug overdose",
-                "heroin": "drug overdose",
-                "fentanyl": "drug overdose",
-                "overdose deaths": "drug overdose",
-                
-                # Cholesterol keywords
-                "cholesterol": "cholesterol",
-                "high cholesterol": "cholesterol",
-                "hypercholesterolemia": "cholesterol",
-                
-                # Hypertension keywords
-                "blood pressure": "hypertension",
-                "high blood pressure": "hypertension",
-                "hypertension": "hypertension",
-                "bp": "hypertension",
-                
-                # Obesity keywords
-                "obesity": "obesity",
-                "obese": "obesity",
-                "overweight": "overweight",
-                "bmi": "obesity",
-                "weight": "obesity",
-                
-                # Nutrition keywords
-                "nutrition": "nutrition",
-                "diet": "nutrition",
-                "dietary": "nutrition",
-                "calcium": "nutrition",
-                "fiber": "nutrition",
-                "iron": "nutrition",
-                "sodium": "nutrition",
-                "vitamin": "nutrition",
-                
-                # Functioning/Disability keywords
-                "disability": "functioning",
-                "functioning": "functioning",
-                "difficulty": "functioning",
-                "functional": "functioning",
-                
-                # Prescription Drug keywords
-                "prescription": "prescription drugs",
-                "medication": "prescription drugs", 
-                "drugs": "prescription drugs",
-                "medicines": "prescription drugs",
-                
-                # Substance Use keywords
-                "substance": "substance use",
-                "alcohol": "substance use",
-                "drinking": "substance use",
-                "smoking": "substance use",
-                "tobacco": "substance use",
-                
-                # Emergency/Hospital keywords
-                "emergency": "emergency department",
-                "er": "emergency department",
-                "ed": "emergency department",
-                "hospital": "hospital visits",
-                "admissions": "hospital visits",
-                
-                # Infectious Disease keywords
-                "infectious": "infectious diseases",
-                "herpes": "herpes",
-                "hsv": "herpes",
-                
-                # Mortality keywords
-                "infant mortality": "infant mortality",
-                "fetal mortality": "fetal mortality",
-                "death": "suicide",
-                "mortality": "suicide",
-                
-                # Birth keywords
-                "birth": "low birthweight",
-                "birthweight": "low birthweight",
-                "low birth weight": "low birthweight"
-            }
-            
-            for keyword, canonical in essential_keywords.items():
-                if keyword not in LOADED_KEYWORDS:
-                    LOADED_KEYWORDS[keyword] = canonical
-                    print(f"✅ Added keyword: {keyword} -> {canonical}")
-            
-            # COMPREHENSIVE DQS TOPIC MAPPING FIXES
-            dqs_mapping_updates = {
-                "suicide": "suicide-deaths",
-                "dental care": "dental-exam-or-cleaning",
-                "oral health": "total-dental-caries-in-permanent-teeth-in-adults",
-                "dental caries": "total-dental-caries-in-permanent-teeth-in-adults",
-                "tooth loss": "complete-tooth-loss",
-                "cancer": "any-cancer-type",
-                "breast cancer": "breast-cancer",
-                "prostate cancer": "prostate-cancer",
-                "cervical cancer": "cervical-cancer",
-                "skin cancer": "any-skin-cancer",
-                "heart disease": "coronary-heart-disease",
-                "heart attack": "heart-attackmyocardial-infarction",
-                "angina": "anginaangina-pectoris",
-                "drug overdose": "all-drug-overdose-deaths",
-                "opioid": "drug-overdose-deaths-involving-any-opioid",
-                "heroin": "drug-overdose-deaths-involving-heroin",
-                "cholesterol": "high-cholesterol-diagnosis-selfreported",
-                "high cholesterol": "high-cholesterol-total-measured",
-                "hypertension": "hypertension-diagnosis-selfreported",
-                "blood pressure": "hypertension-measured",
-                "obesity": "obesity-in-adults-selfreported",
-                "overweight": "overweight-or-obesity-bmi-greater-than-or-equal-to-250",
-                "calcium": "calcium-intake",
-                "fiber": "dietary-fiber-intake",
-                "iron": "iron-intake",
-                "sodium": "sodium-intake",
-                "vitamin d": "vitamin-d-intake",
-                "disability": "disability-status-composite",
-                "functioning": "functioning-difficulties-composite-threelevel",
-                "prescription drugs": "prescription-medication-use-among-adults",
-                "alcohol": "alcohol",
-                "smoking": "current-cigarette-smoking",
-                "emergency department": "hospital-emergency-department-visit",
-                "hospital": "hospital-admissions",
-                "herpes": "herpes-simplex-virus-type-1",
-                "infant mortality": "all-infant-deaths",
-                "fetal mortality": "all-fetal-deaths",
-                "low birthweight": "low-birthweight-live-births"
-            }
-            
-            for topic, slug in dqs_mapping_updates.items():
-                if topic not in DQS_TOPIC_MAPPING:
-                    DQS_TOPIC_MAPPING[topic] = slug
-                    print(f"✅ Added DQS mapping: {topic} -> {slug}")
-            
-            print(f"✅ COMPREHENSIVE FIXES COMPLETE!")
-            print(f"✅ Loaded {len(LOADED_KEYWORDS)} keywords")
-            print(f"✅ Loaded {len(DATASET_METADATA)} dataset entries")
-            print(f"✅ Configured {len(TOPIC_ROUTES)} topic routes")
-            print(f"✅ Configured {len(DQS_TOPIC_MAPPING)} DQS mappings")
+            # Sample some loaded data for verification
+            print(f"📊 Sample keywords: {list(LOADED_KEYWORDS.keys())[:5]}")
+            print(f"📊 Sample topics with routes: {list(TOPIC_ROUTES.keys())[:5]}")
             
         except Exception as e:
-            print(f"⚠️ Error loading keywords: {e}")
+            print(f"❌ Error loading keywords: {e}")
+            # Initialize empty dictionaries as fallback
             LOADED_KEYWORDS = {}
             DATASET_METADATA = {}
             TOPIC_ROUTES = {}
             DQS_TOPIC_MAPPING = {}
             GROUPING_CATEGORIES = {}
+    else:
+        print(f"❌ Keywords file not found: {USER_KEYWORDS_PATH}")
+        print("❌ All keyword matching will fail!")
+        # Initialize empty dictionaries
+        LOADED_KEYWORDS = {}
+        DATASET_METADATA = {}
+        TOPIC_ROUTES = {}
+        DQS_TOPIC_MAPPING = {}
+        GROUPING_CATEGORIES = {}
 
 def extract_socrata_id_from_url(url: str) -> Optional[str]:
     pats = [r'/resource/([a-z0-9\-]+)\.json', r'/resource/([a-z0-9\-]+)/?$', r'/d/([a-z0-9\-]+)/?']
@@ -518,7 +331,11 @@ async def discover_dataset_structure(domain: str, dsid: str):
     return structure
 
 async def load_and_map_catalog():
+    print("📚 Loading catalog...")
+    
+    # First load keywords
     load_user_keywords()
+    
     catalog = {}
     
     if DATASET_METADATA:
@@ -591,6 +408,7 @@ async def load_and_map_catalog():
 
 def find_canonical_topic(query_text: str) -> str:
     if not LOADED_KEYWORDS:
+        print("❌ No keywords loaded - cannot find canonical topic")
         return ""
     
     query_lower = query_text.lower().strip()
@@ -665,12 +483,14 @@ def _indicator_best_with_score(query: str, available_indicators: List[str]):
     cancer_terms = ["cancer", "malignant", "tumor", "breast", "lung", "prostate", "cervical", "skin"]
     heart_terms = ["heart", "cardiac", "coronary", "cardiovascular", "heart attack", "angina"]
     overdose_terms = ["overdose", "drug overdose", "opioid", "heroin", "fentanyl"]
+    spending_terms = ["spending", "cost", "costs", "expenditure", "expenditures", "physician services", "hospital care", "dental services", "prescription drugs", "nursing care", "home health"]
     
     is_dental_query = any(term in ql for term in dental_terms)
     is_suicide_query = any(term in ql for term in suicide_terms)
     is_cancer_query = any(term in ql for term in cancer_terms)
     is_heart_query = any(term in ql for term in heart_terms)
     is_overdose_query = any(term in ql for term in overdose_terms)
+    is_spending_query = any(term in ql for term in spending_terms)
     
     for ind in available_indicators:
         il = ind.lower()
@@ -715,6 +535,21 @@ def _indicator_best_with_score(query: str, available_indicators: List[str]):
                 if "overdose" in ql and "overdose" in il:
                     s += 40
         
+        elif is_spending_query:
+            if any(term in il for term in spending_terms):
+                s += 50
+                if "spending" in ql and "spending" in il:
+                    s += 30
+                # Specific spending type bonuses
+                if "physician" in ql and "physician" in il:
+                    s += 25
+                elif "hospital care" in ql and "hospital" in il:
+                    s += 25
+                elif "dental services" in ql and "dental" in il:
+                    s += 25
+                elif "prescription" in ql and "prescription" in il:
+                    s += 25
+        
         elif canonical_topic and canonical_topic.lower() in il:
             s += 50
         
@@ -735,7 +570,7 @@ def _indicator_best_with_score(query: str, available_indicators: List[str]):
                     s += 25
         
         # Token matching (excluding topic-specific cases)
-        if not any([is_dental_query, is_suicide_query, is_cancer_query, is_heart_query, is_overdose_query]):
+        if not any([is_dental_query, is_suicide_query, is_cancer_query, is_heart_query, is_overdose_query, is_spending_query]):
             for t in qtokens:
                 if len(t)>=4 and t in il: 
                     s += 5
@@ -781,6 +616,7 @@ def select_best_dataset(query: str, catalog: Dict[str, Any]):
     cancer_terms = ["cancer", "malignant", "tumor", "breast", "lung", "prostate"]
     heart_terms = ["heart", "cardiac", "coronary", "cardiovascular"]
     overdose_terms = ["overdose", "drug overdose", "opioid", "heroin"]
+    spending_terms = ["spending", "cost", "costs", "expenditure", "expenditures", "healthcare spending", "medical costs"]
     
     is_vaccination_query = any(term in ql for term in vaccination_terms)
     is_dental_query = any(term in ql for term in dental_terms)
@@ -788,6 +624,7 @@ def select_best_dataset(query: str, catalog: Dict[str, Any]):
     is_cancer_query = any(term in ql for term in cancer_terms)
     is_heart_query = any(term in ql for term in heart_terms)
     is_overdose_query = any(term in ql for term in overdose_terms)
+    is_spending_query = any(term in ql for term in spending_terms)
     
     for dsid, info in catalog.items():
         inds = info.get("available_indicators",[]) or []
@@ -841,6 +678,27 @@ def select_best_dataset(query: str, catalog: Dict[str, Any]):
             elif any(term in topics for term in ["drug overdose", "opioids", "substance use"]):
                 topic_relevance += 70
         
+        elif is_spending_query:
+            if any(term in label_lower for term in ["spending", "expenditure", "cost", "healthcare spending"]):
+                topic_relevance += 90
+                
+                # Specific spending type bonuses
+                if "personal healthcare" in ql and "personal" in label_lower:
+                    topic_relevance += 30
+                elif "national" in ql and "national" in label_lower:
+                    topic_relevance += 30
+                elif "physician" in ql and any(term in topics for term in ["physician services", "clinical services"]):
+                    topic_relevance += 20
+                elif "hospital care" in ql and "hospital" in topics:
+                    topic_relevance += 20
+                elif "dental services" in ql and "dental" in topics:
+                    topic_relevance += 20
+                elif "prescription" in ql and "prescription" in topics:
+                    topic_relevance += 20
+                    
+            elif any(term in topics for term in ["healthcare spending", "health expenditures", "spending"]):
+                topic_relevance += 70
+        
         elif is_vaccination_query:
             vaccination_indicators = [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])]
             if vaccination_indicators:
@@ -868,6 +726,8 @@ def select_best_dataset(query: str, catalog: Dict[str, Any]):
             topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in heart_terms)]
         elif is_overdose_query:
             topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in overdose_terms)]
+        elif is_spending_query:
+            topic_specific_indicators = [ind for ind in inds if any(term in ind.lower() for term in spending_terms)]
         
         if topic_specific_indicators:
             indicator_match += 40
@@ -898,7 +758,7 @@ def select_best_dataset(query: str, catalog: Dict[str, Any]):
         final_score = topic_relevance + indicator_match + population_match
         scores[dsid] = final_score
         
-        if dsid in ["w26f-tf3h", "36ue-xht5", "h3hw-hzvg", "rdjz-vn2n"]:
+        if dsid in ["w26f-tf3h", "36ue-xht5", "h3hw-hzvg", "rdjz-vn2n", "s57w-7gbe", "gu48-2cs8"]:
             print(f"📊 {dsid}: relevance={topic_relevance}, indicator={indicator_match}, pop={population_match}, final={final_score}")
     
     if not scores:
@@ -1296,6 +1156,22 @@ def format_results_for_chart(res: Dict[str, Any]) -> Dict[str, Any]:
             subtopic_param = "all-drug-overdose-deaths"
     elif "suicide" in indicator.lower():
         subtopic_param = "suicide-among-adults-aged-geq-18-years"
+    elif "physician and clinical services" in indicator.lower() or "physician" in indicator.lower():
+        subtopic_param = "physician-and-clinical-services"
+    elif "hospital care" in indicator.lower():
+        subtopic_param = "hospital-care"  
+    elif "dental services" in indicator.lower():
+        subtopic_param = "dental-services"
+    elif "prescription drugs" in indicator.lower() and "spending" in query.lower():
+        subtopic_param = "prescription-drugs"
+    elif "nursing care" in indicator.lower():
+        subtopic_param = "nursing-care-facilities"
+    elif "home health" in indicator.lower():
+        subtopic_param = "home-health-care"
+    elif "personal healthcare" in indicator.lower() and "spending" in indicator.lower():
+        subtopic_param = "personal-healthcare-spending"
+    elif "national health" in indicator.lower() and ("expenditure" in indicator.lower() or "spending" in indicator.lower()):
+        subtopic_param = "national-health-expenditures"
     
     dqs_url = f"{dqs_base}?topic={topic_slug}&subtopic={subtopic_param}&group={group_slug}&subgroup=&range={year_param}"
     out["chart_dqs_url"] = dqs_url
@@ -2023,243 +1899,6 @@ async def nlq_interface():
 </html>
     """)
 
-@app.get("/nlq_tester", response_class=HTMLResponse)
-async def nlq_tester():
-    """Test interface with predefined queries"""
-    return HTMLResponse(content="""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDC Health Data - Example Queries</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        .header h1 {
-            color: #2c3e50;
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-        }
-        .header p {
-            color: #7f8c8d;
-            margin: 0;
-            font-size: 1.2em;
-        }
-        .examples-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            margin: 30px 0;
-        }
-        .example-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            border-left: 5px solid #3498db;
-        }
-        .example-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-        }
-        .example-card h3 {
-            color: #2c3e50;
-            margin: 0 0 15px 0;
-            font-size: 1.3em;
-        }
-        .example-query {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            font-style: italic;
-            color: #555;
-            margin: 15px 0;
-            border-left: 3px solid #3498db;
-        }
-        .try-btn {
-            background: linear-gradient(45deg, #3498db, #2980b9);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        .try-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .back-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(52, 152, 219, 0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        .back-btn:hover {
-            background: rgba(41, 128, 185, 0.9);
-            transform: translateY(-2px);
-        }
-        .main-link {
-            text-align: center;
-            margin: 40px 0;
-        }
-        .main-link a {
-            background: linear-gradient(45deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-size: 1.1em;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            display: inline-block;
-        }
-        .main-link a:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-        .category {
-            margin-bottom: 15px;
-        }
-        .category h4 {
-            color: #2c3e50;
-            margin: 0 0 10px 0;
-            font-size: 1.1em;
-        }
-    </style>
-</head>
-<body>
-    <a href="/" class="back-btn">← Back to Home</a>
-    
-    <div class="header">
-        <h1>🧪 Example Health Data Queries</h1>
-        <p>Try these sample questions to see what our system can do</p>
-    </div>
-    
-    <div class="examples-grid">
-        <div class="example-card">
-            <h3>🧠 Mental Health & Suicide</h3>
-            <div class="category">
-                <h4>Basic Queries:</h4>
-                <div class="example-query">"What are suicide rates by gender?"</div>
-                <div class="example-query">"Suicide deaths by state in 2021"</div>
-                <div class="example-query">"Show me suicide trends over time"</div>
-            </div>
-            <a href="/nlq?q=suicide rates by gender" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>🦷 Oral Health & Dental Care</h3>
-            <div class="category">
-                <h4>Dental Statistics:</h4>
-                <div class="example-query">"Dental care statistics for children"</div>
-                <div class="example-query">"Tooth decay by age group"</div>
-                <div class="example-query">"Dental visits by income level"</div>
-            </div>
-            <a href="/nlq?q=dental care statistics for children" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>🎗️ Cancer Statistics</h3>
-            <div class="category">
-                <h4>Cancer Data:</h4>
-                <div class="example-query">"Cancer mortality by state"</div>
-                <div class="example-query">"Breast cancer rates by race"</div>
-                <div class="example-query">"Cancer deaths trends by gender"</div>
-            </div>
-            <a href="/nlq?q=cancer mortality by state" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>💊 Drug Overdose & Substance Use</h3>
-            <div class="category">
-                <h4>Overdose Statistics:</h4>
-                <div class="example-query">"Drug overdose deaths in 2022"</div>
-                <div class="example-query">"Opioid deaths by state"</div>
-                <div class="example-query">"Overdose trends by age group"</div>
-            </div>
-            <a href="/nlq?q=drug overdose deaths in 2022" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>❤️ Heart Disease & Cardiovascular</h3>
-            <div class="category">
-                <h4>Heart Health:</h4>
-                <div class="example-query">"Heart disease rates by age group"</div>
-                <div class="example-query">"Cardiovascular deaths by gender"</div>
-                <div class="example-query">"Heart attack rates by state"</div>
-            </div>
-            <a href="/nlq?q=heart disease rates by age group" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>💉 Vaccination Coverage</h3>
-            <div class="category">
-                <h4>Immunization Data:</h4>
-                <div class="example-query">"Flu vaccination coverage by race"</div>
-                <div class="example-query">"Vaccine rates for children"</div>
-                <div class="example-query">"Influenza shots by age group"</div>
-            </div>
-            <a href="/nlq?q=flu vaccination coverage by race" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>⚖️ Obesity & Weight Status</h3>
-            <div class="category">
-                <h4>Weight Statistics:</h4>
-                <div class="example-query">"Obesity rates by education level"</div>
-                <div class="example-query">"Childhood obesity by state"</div>
-                <div class="example-query">"Weight status trends by gender"</div>
-            </div>
-            <a href="/nlq?q=obesity rates by education level" class="try-btn">Try These Queries →</a>
-        </div>
-        
-        <div class="example-card">
-            <h3>📊 Complex Demographic Queries</h3>
-            <div class="category">
-                <h4>Advanced Breakdowns:</h4>
-                <div class="example-query">"Show health data by race and gender"</div>
-                <div class="example-query">"Compare rural vs urban health outcomes"</div>
-                <div class="example-query">"Health trends by income and education"</div>
-            </div>
-            <a href="/nlq?q=health data by race and gender" class="try-btn">Try These Queries →</a>
-        </div>
-    </div>
-    
-    <div class="main-link">
-        <a href="/nlq">🔍 Open Main Query Interface</a>
-    </div>
-</body>
-</html>
-    """)
-
 # API ENDPOINTS (keeping all existing ones)
 
 @app.post("/v1/nlq")
@@ -2283,171 +1922,6 @@ async def keywords():
         "sample_keywords": dict(list(LOADED_KEYWORDS.items())[:10]) if LOADED_KEYWORDS else {}
     }
 
-@app.get("/v1/debug/match/{query}")
-async def debug_matching(query: str):
-    catalog = await get_catalog()
-    if not catalog:
-        return {"error": "No catalog available"}
-    
-    canonical_topic = find_canonical_topic(query)
-    relevant_datasets = get_relevant_datasets_for_topic(canonical_topic) if canonical_topic else []
-    
-    available_relevant = [ds for ds in relevant_datasets if ds in catalog]
-    missing_relevant = [ds for ds in relevant_datasets if ds not in catalog]
-    
-    children_keywords = ["children", "child", "kids", "pediatric", "childhood", "youth"]
-    is_children_query = any(kw in query.lower() for kw in children_keywords)
-    
-    vaccination_terms = ["flu", "influenza", "vaccine", "vaccination", "shot", "immunization"]
-    is_vaccination_query = any(term in query.lower() for term in vaccination_terms)
-    
-    dental_terms = ["dental", "teeth", "tooth", "caries", "oral", "dentist"]
-    is_dental_query = any(term in query.lower() for term in dental_terms)
-    
-    suicide_terms = ["suicide", "suicidal", "self-harm", "self harm"]
-    is_suicide_query = any(term in query.lower() for term in suicide_terms)
-    
-    dataset_scores = []
-    ql = query.lower()
-    
-    for dsid, info in catalog.items():
-        inds = info.get("available_indicators",[]) or []
-        label_lower = info.get("label","").lower()
-        
-        topic_relevance = 0
-        if canonical_topic and dsid in relevant_datasets:
-            topic_relevance += 60
-        
-        if is_vaccination_query:
-            vaccination_indicators = [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])]
-            if vaccination_indicators:
-                topic_relevance += 50
-        elif is_dental_query:
-            if "oral health" in label_lower:
-                topic_relevance += 80
-            elif any(term in label_lower for term in dental_terms):
-                topic_relevance += 50
-        elif is_suicide_query:
-            if "suicide" in label_lower or "injury" in label_lower or "vital statistics" in label_lower:
-                topic_relevance += 80
-        
-        dataset_scores.append({
-            "dataset_id": dsid,
-            "label": info.get("label"),
-            "topic_relevance": topic_relevance,
-            "indicator_count": len(inds),
-            "in_relevant_datasets": dsid in relevant_datasets,
-            "topics": info.get("topics", []),
-            "vaccination_indicators": [ind for ind in inds if any(term in ind.lower() for term in ["flu", "influenza", "vaccine", "vaccination", "immunization"])],
-            "dental_indicators": [ind for ind in inds if any(term in ind.lower() for term in dental_terms)],
-            "suicide_indicators": [ind for ind in inds if any(term in ind.lower() for term in suicide_terms)]
-        })
-    
-    dataset_scores.sort(key=lambda x: x["topic_relevance"], reverse=True)
-    
-    dsid = select_best_dataset(query, catalog)
-    info = catalog.get(dsid)
-    if not info:
-        return {"error": "No dataset selected"}
-    
-    available_indicators = info.get("available_indicators", [])
-    
-    best_ind, best_score = _indicator_best_with_score(query, available_indicators)
-    
-    scores = []
-    for ind in available_indicators:
-        score = _indicator_best_with_score(query, [ind])[1]
-        scores.append({"indicator": ind, "score": score})
-    
-    scores.sort(key=lambda x: x["score"], reverse=True)
-    
-    dqs_topic = get_dqs_topic_slug(best_ind or "", query, info) if best_ind else "N/A"
-    
-    return {
-        "query": query,
-        "query_analysis": {
-            "is_children_query": is_children_query,
-            "is_vaccination_query": is_vaccination_query,
-            "is_dental_query": is_dental_query,
-            "is_suicide_query": is_suicide_query
-        },
-        "canonical_topic_analysis": {
-            "canonical_topic": canonical_topic,
-            "relevant_datasets_for_topic": relevant_datasets,
-            "available_relevant_datasets": available_relevant,
-            "missing_relevant_datasets": missing_relevant
-        },
-        "dataset_scores": dataset_scores[:8],
-        "selected_dataset": {
-            "id": dsid,
-            "label": info.get("label"),
-            "target_population": info.get("target_population", [])
-        },
-        "indicator_matching": {
-            "best_match": {
-                "indicator": best_ind,
-                "score": best_score,
-                "dqs_topic": dqs_topic
-            },
-            "all_scores": scores[:10],
-            "total_indicators": len(available_indicators)
-        },
-        "keywords_status": {
-            "keywords_loaded": len(LOADED_KEYWORDS) > 0,
-            "total_keywords": len(LOADED_KEYWORDS),
-            "sample_keywords": dict(list(LOADED_KEYWORDS.items())[:5]) if LOADED_KEYWORDS else {}
-        },
-        "catalog_info": {
-            "total_datasets": len(catalog),
-            "dataset_ids": list(catalog.keys())
-        }
-    }
-
-@app.get("/v1/catalog/debug")
-async def debug_catalog():
-    catalog = await get_catalog()
-    debug_info = {
-        "catalog_size": len(catalog), 
-        "datasets": {},
-        "all_indicators": [],
-        "vaccination_indicators": [],
-        "flu_indicators": [],
-        "pneumo_indicators": [],
-        "keywords_status": {
-            "loaded_keywords_count": len(LOADED_KEYWORDS),
-            "dataset_metadata_count": len(DATASET_METADATA),
-            "topic_routes_count": len(TOPIC_ROUTES),
-            "dqs_mapping_count": len(DQS_TOPIC_MAPPING),
-            "grouping_categories_count": len(GROUPING_CATEGORIES)
-        }
-    }
-    
-    all_indicators = []
-    for k, v in catalog.items():
-        indicators = v.get("available_indicators", [])
-        all_indicators.extend(indicators)
-        
-        debug_info["datasets"][k] = {
-            "label": v.get("label"),
-            "dqs_like": v.get("dqs_like"),
-            "indicator_count": len(indicators), 
-            "has_groups": bool(v.get("structure",{}).get("available_values",{}).get("group_value")),
-            "sample_indicators": indicators[:5]
-        }
-    
-    debug_info["all_indicators"] = sorted(set(all_indicators))
-    
-    for ind in all_indicators:
-        ind_lower = ind.lower()
-        if any(term in ind_lower for term in ["vaccin", "immun", "shot"]):
-            debug_info["vaccination_indicators"].append(ind)
-        if any(term in ind_lower for term in ["flu", "influenza"]):
-            debug_info["flu_indicators"].append(ind)
-        if any(term in ind_lower for term in ["pneumo", "pneumonia"]):
-            debug_info["pneumo_indicators"].append(ind)
-    
-    return debug_info
-
 @app.get("/__version")
 def version(): 
     return {"name": APP_NAME, "version": APP_VERSION, "file": __file__}
@@ -2462,561 +1936,9 @@ def whoami():
 def health_check():
     return {"status": "healthy", "message": "CDC Health Data API is running"}
 
-# WIDGET FUNCTIONALITY
-# Compact CDC Health Data Widget - Brief Q&A format
-
-def detect_year_preference(query: str) -> str:
-    """Detect year preference from query"""
-    query_lower = query.lower()
-    
-    # Specific year
-    year_match = re.search(r"\b(20\d{2}|19\d{2})\b", query)
-    if year_match:
-        return year_match.group(1)
-    
-    # Recent/latest/last year
-    if any(term in query_lower for term in ["recent", "latest", "last year", "current", "now"]):
-        return "latest"
-    
-    return "all"
-
-def detect_grouping_preference(query: str, structure: Dict[str, Any]):
-    """Detect grouping preference for widget"""
-    ql = query.lower()
-    av = structure.get("available_values", {})
-    groups = av.get("grouping_category", [])
-    subgroups = av.get("group_value", [])
-    
-    # Check for specific demographic terms
-    if any(term in ql for term in ["by sex", "by gender", "men", "women", "male", "female"]):
-        sex_group = next((g for g in groups if "sex" in g.lower()), None)
-        if "men" in ql or "male" in ql:
-            return sex_group, "Male"
-        elif "women" in ql or "female" in ql:
-            return sex_group, "Female"
-        return sex_group, None
-    
-    if any(term in ql for term in ["by race", "by ethnicity", "white", "black", "hispanic"]):
-        race_group = next((g for g in groups if "race" in g.lower() or "hispanic" in g.lower()), None)
-        return race_group, None
-    
-    if any(term in ql for term in ["by age", "children", "adults", "elderly"]):
-        age_group = next((g for g in groups if "age" in g.lower()), None)
-        return age_group, None
-    
-    # Check for specific subgroup mentions
-    for sg in subgroups:
-        if sg.lower() in ql:
-            # Find corresponding group
-            corresponding_group = None
-            for g in groups:
-                if "sex" in g.lower() and sg.lower() in ["male", "female"]:
-                    corresponding_group = g
-                    break
-                elif "race" in g.lower() and any(race in sg.lower() for race in ["white", "black", "hispanic", "asian"]):
-                    corresponding_group = g
-                    break
-            return corresponding_group, sg
-    
-    return None, None
-
-def find_best_indicator_widget(query: str, available_indicators: List[str]):
-    """Find best matching indicator for widget"""
-    if not available_indicators: 
-        return None
-    
-    ql = query.lower()
-    best, score_best = None, -1
-    
-    for ind in available_indicators:
-        il = ind.lower()
-        s = 0
-        
-        # Topic-specific scoring
-        if "suicide" in ql and "suicide" in il:
-            s += 60
-        elif "dental" in ql and any(term in il for term in ["dental", "tooth", "oral"]):
-            s += 60
-        elif "cancer" in ql and "cancer" in il:
-            s += 60
-        elif "heart" in ql and "heart" in il:
-            s += 60
-        elif "drug" in ql and "overdose" in il:
-            s += 60
-        elif "flu" in ql and any(term in il for term in ["flu", "influenza"]):
-            s += 60
-        
-        # Token matching
-        for token in ql.split():
-            if len(token) >= 4 and token in il:
-                s += 10
-        
-        if s > score_best:
-            best, score_best = ind, s
-    
-    return best if score_best >= 10 else None
-
-def format_estimate(estimate, lci=None, uci=None) -> str:
-    """Format estimate with confidence interval"""
-    try:
-        est_num = float(estimate)
-        result = f"{est_num:.1f}%"
-        
-        if lci is not None and uci is not None:
-            try:
-                lci_num = float(lci)
-                uci_num = float(uci)
-                result += f" (95% CI: {lci_num:.1f}%-{uci_num:.1f}%)"
-            except (ValueError, TypeError):
-                pass
-        
-        return result
-    except (ValueError, TypeError):
-        return str(estimate) if estimate else "Data not available"
-
-def get_cdc_topic_link(topic: str) -> str:
-    """Get relevant CDC link for topic"""
-    topic_lower = topic.lower() if topic else ""
-    
-    CDC_LINKS = {
-        "suicide": "https://www.cdc.gov/suicide/index.html",
-        "dental": "https://www.cdc.gov/oralhealth/index.html",
-        "diabetes": "https://www.cdc.gov/diabetes/index.html",
-        "cancer": "https://www.cdc.gov/cancer/index.htm",
-        "heart": "https://www.cdc.gov/heartdisease/index.htm",
-        "drug": "https://www.cdc.gov/overdose/index.html",
-        "flu": "https://www.cdc.gov/vaccines/vpd/flu/index.html",
-        "vaccine": "https://www.cdc.gov/vaccines/index.html"
-    }
-    
-    for key, link in CDC_LINKS.items():
-        if key in topic_lower:
-            return link
-    
-    return "https://www.cdc.gov/"
-
-async def process_widget_query(query: str) -> Dict[str, Any]:
-    """Process query and return brief answer for widget"""
-    
-    # Use existing catalog
-    catalog = await get_catalog()
-    
-    if not catalog:
-        return {
-            "answer": "Sorry, I don't have access to health data right now. Please try again later.",
-            "source": "System Error",
-            "cdc_link": "https://www.cdc.gov/"
-        }
-    
-    # Find topic and dataset
-    canonical_topic = find_canonical_topic(query)
-    dsid = select_best_dataset(query, catalog)
-    
-    if not dsid:
-        cdc_link = get_cdc_topic_link(canonical_topic)
-        return {
-            "answer": f"I couldn't find data for that topic. You might find relevant information at the CDC: {cdc_link}",
-            "source": "No Data Found",
-            "cdc_link": cdc_link
-        }
-    
-    dataset_info = catalog[dsid]
-    structure = dataset_info.get("structure", {})
-    available_indicators = dataset_info.get("available_indicators", [])
-    
-    # Find best indicator
-    indicator = find_best_indicator_widget(query, available_indicators)
-    if not indicator:
-        cdc_link = get_cdc_topic_link(canonical_topic)
-        return {
-            "answer": f"I couldn't find a specific health indicator matching your question. Try the CDC website for more information: {cdc_link}",
-            "source": dataset_info.get("label", "CDC Data"),
-            "cdc_link": cdc_link
-        }
-    
-    # Detect preferences
-    year_pref = detect_year_preference(query)
-    group, subgroup = detect_grouping_preference(query, structure)
-    
-    # Build query
-    filters = {"indicator": indicator}
-    if group:
-        filters["grouping_category"] = group
-    if subgroup:
-        filters["group_value"] = subgroup
-    
-    # Handle year preference
-    available_years = structure.get("available_values", {}).get("year", [])
-    if year_pref == "latest" and available_years:
-        latest_year = max(available_years)
-        filters["year"] = latest_year
-    elif year_pref != "all" and year_pref in available_years:
-        filters["year"] = year_pref
-    
-    # Fetch data
-    url = build_dqs_query_url(dataset_info["domain"], dsid, **filters)
-    data = await fetch(url)
-    
-    if not data:
-        return {
-            "answer": f"No data found for {indicator}. This might be because the specific breakdown you requested isn't available.",
-            "source": dataset_info.get("label", "CDC Data"),
-            "cdc_link": get_cdc_topic_link(canonical_topic)
-        }
-    
-    # Format response
-    return format_widget_response(query, data, filters, year_pref, dataset_info, canonical_topic)
-
-def format_widget_response(query: str, data: List[Dict], filters: Dict, year_pref: str, dataset_info: Dict, canonical_topic: str) -> Dict[str, Any]:
-    """Format brief response for widget"""
-    
-    if not data:
-        return {
-            "answer": "No data available for this query.",
-            "source": dataset_info.get("label", "CDC Data"),
-            "cdc_link": get_cdc_topic_link(canonical_topic)
-        }
-    
-    indicator = filters.get("indicator", "")
-    group = filters.get("grouping_category")
-    subgroup = filters.get("group_value")
-    year = filters.get("year")
-    
-    # Sort data by time period (most recent first)
-    data.sort(key=lambda x: x.get("time_period", ""), reverse=True)
-    
-    # Build response
-    response_parts = []
-    
-    # Handle specific subgroup request
-    if subgroup:
-        subgroup_data = [d for d in data if d.get("subgroup") == subgroup]
-        if subgroup_data:
-            latest = subgroup_data[0]
-            est = format_estimate(latest.get("estimate"), latest.get("estimate_lci"), latest.get("estimate_uci"))
-            time_period = latest.get("time_period", "recent years")
-            response_parts.append(f"For {subgroup.lower()}: {est} in {time_period}.")
-        else:
-            response_parts.append(f"No specific data available for {subgroup.lower()}.")
-    
-    # Handle overall/total population data
-    if not subgroup or len(response_parts) == 0:
-        # Look for total/overall data
-        total_data = [d for d in data if d.get("subgroup", "").lower() in ["total", "overall", "both sexes", "all persons"]]
-        if not total_data:
-            total_data = data  # Use all data if no specific "total" found
-        
-        if total_data:
-            if year_pref == "all" and len(total_data) > 1:
-                # Show trend across years
-                years_shown = []
-                for d in total_data[:3]:  # Show up to 3 most recent years
-                    est = format_estimate(d.get("estimate"), d.get("estimate_lci"), d.get("estimate_uci"))
-                    time_period = d.get("time_period", "unknown")
-                    years_shown.append(f"{est} ({time_period})")
-                
-                response_parts.append(f"Overall rates: {', '.join(years_shown)}.")
-                if len(total_data) > 3:
-                    response_parts.append(f"Showing {len(years_shown)} most recent years of {len(total_data)} available.")
-            
-            else:
-                # Show single most recent or specific year
-                latest = total_data[0]
-                est = format_estimate(latest.get("estimate"), latest.get("estimate_lci"), latest.get("estimate_uci"))
-                time_period = latest.get("time_period", "recent years")
-                
-                if year_pref == "latest":
-                    response_parts.append(f"Most recent data ({time_period}): {est}.")
-                elif year:
-                    response_parts.append(f"In {time_period}: {est}.")
-                else:
-                    response_parts.append(f"Overall rate: {est} ({time_period}).")
-    
-    # Handle grouping explanations
-    if group and not subgroup:
-        # Show breakdown by group
-        group_data = {}
-        for d in data:
-            sg = d.get("subgroup", "Unknown")
-            if sg not in group_data:
-                group_data[sg] = d
-        
-        if len(group_data) > 1:
-            breakdown_parts = []
-            for sg, d in list(group_data.items())[:3]:  # Show top 3 groups
-                est = format_estimate(d.get("estimate"), d.get("estimate_lci"), d.get("estimate_uci"))
-                breakdown_parts.append(f"{sg}: {est}")
-            
-            response_parts.append(f"By {group.lower()}: {', '.join(breakdown_parts)}.")
-            if len(group_data) > 3:
-                response_parts.append(f"Showing top 3 of {len(group_data)} groups.")
-    
-    # Validation check
-    if not response_parts:
-        response_parts.append("Data is available but couldn't be formatted properly.")
-    
-    answer = " ".join(response_parts)
-    
-    # Add context about the indicator
-    source_note = f"Data from {dataset_info.get('label', 'CDC dataset')} on {indicator.lower()}."
-    
-    return {
-        "answer": answer,
-        "source": source_note,
-        "cdc_link": get_cdc_topic_link(canonical_topic),
-        "data_points": len(data)
-    }
-
-@app.post("/v1/widget/ask")
-async def widget_ask(body: Dict[str, Any] = Body(...)):
-    """Widget endpoint for brief Q&A"""
-    query = str(body.get("question", "")).strip()
-    
-    if not query:
-        return JSONResponse({
-            "answer": "Please ask a question about health statistics.",
-            "source": "Widget",
-            "cdc_link": "https://www.cdc.gov/"
-        })
-    
-    try:
-        result = await process_widget_query(query)
-        return JSONResponse(result)
-    except Exception as e:
-        return JSONResponse({
-            "answer": "Sorry, I encountered an error processing your question. Please try rephrasing it.",
-            "source": "Error",
-            "cdc_link": "https://www.cdc.gov/",
-            "error": str(e)
-        }, status_code=500)
-
-# Widget HTML Interface
-WIDGET_HTML = '''<!DOCTYPE html>
-<html><head>
-<meta charset='utf-8'>
-<title>CDC Health Data Widget</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: #f8f9fa;
-  height: 300px;
-  overflow-y: auto;
-}
-.widget-container {
-  max-width: 900px;
-  height: 100%;
-  background: white;
-  border: 1px solid #e1e5e9;
-  display: flex;
-  flex-direction: column;
-}
-.widget-header {
-  background: linear-gradient(135deg, #0057B7 0%, #003D82 100%);
-  color: white;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.widget-content {
-  flex: 1;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.question-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 2px solid #e1e5e9;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.question-input:focus {
-  border-color: #0057B7;
-}
-.ask-button {
-  background: #0057B7;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  align-self: flex-start;
-}
-.ask-button:hover {
-  background: #003D82;
-}
-.ask-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-.response-area {
-  flex: 1;
-  min-height: 120px;
-  background: #f8f9fa;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
-  padding: 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-y: auto;
-}
-.answer {
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-.source {
-  color: #6c757d;
-  font-size: 12px;
-  font-style: italic;
-  margin-bottom: 4px;
-}
-.cdc-link {
-  color: #0057B7;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 500;
-}
-.cdc-link:hover {
-  text-decoration: underline;
-}
-.loading {
-  color: #6c757d;
-  font-style: italic;
-}
-.error {
-  color: #dc3545;
-  background: #f8d7da;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #f5c6cb;
-}
-.examples {
-  font-size: 11px;
-  color: #6c757d;
-  margin-top: 4px;
-}
-.example-link {
-  color: #0057B7;
-  cursor: pointer;
-  text-decoration: underline;
-  margin-right: 8px;
-}
-</style>
-</head><body>
-
-<div class="widget-container">
-  <div class="widget-header">
-    🏥 CDC Health Data Assistant
-  </div>
-  
-  <div class="widget-content">
-    <input 
-      type="text" 
-      id="questionInput" 
-      class="question-input" 
-      placeholder="Ask about health statistics (e.g., 'diabetes rates in adults')"
-      maxlength="200"
-    >
-    
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <button id="askButton" class="ask-button">Ask</button>
-      <div class="examples">
-        Examples: 
-        <span class="example-link" onclick="setQuestion('diabetes in adults')">diabetes rates</span>
-        <span class="example-link" onclick="setQuestion('flu vaccination children')">flu shots</span>
-        <span class="example-link" onclick="setQuestion('suicide rates by race')">suicide by race</span>
-      </div>
-    </div>
-    
-    <div id="responseArea" class="response-area">
-      <div style="color: #6c757d; text-align: center; margin-top: 40px;">
-        Ask a question about health statistics to get started.
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-const questionInput = document.getElementById('questionInput');
-const askButton = document.getElementById('askButton');
-const responseArea = document.getElementById('responseArea');
-
-function setQuestion(text) {
-  questionInput.value = text;
-  questionInput.focus();
-}
-
-async function askQuestion() {
-  const question = questionInput.value.trim();
-  if (!question) return;
-  
-  askButton.disabled = true;
-  responseArea.innerHTML = '<div class="loading">Searching health data...</div>';
-  
-  try {
-    const response = await fetch('/v1/widget/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: question })
-    });
-    
-    const data = await response.json();
-    
-    let html = '';
-    if (data.answer) {
-      html += `<div class="answer">${data.answer}</div>`;
-    }
-    if (data.source) {
-      html += `<div class="source">${data.source}</div>`;
-    }
-    if (data.cdc_link) {
-      html += `<a href="${data.cdc_link}" target="_blank" class="cdc-link">More info at CDC →</a>`;
-    }
-    
-    if (!response.ok) {
-      html = `<div class="error">Error: ${data.answer || 'Something went wrong'}</div>`;
-    }
-    
-    responseArea.innerHTML = html;
-    
-  } catch (error) {
-    responseArea.innerHTML = `<div class="error">Connection error. Please try again.</div>`;
-  } finally {
-    askButton.disabled = false;
-  }
-}
-
-askButton.addEventListener('click', askQuestion);
-questionInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    askQuestion();
-  }
-});
-
-// Focus input on load
-questionInput.focus();
-</script>
-
-</body></html>'''
-
-@app.get("/widget")
-def widget_interface():
-    """Serve the compact widget interface"""
-    return HTMLResponse(WIDGET_HTML)
-
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8040))
+    port = int(os.environ.get("PORT", 8080))
     print("✅ CDC Health Data Question System Ready for Railway!")
     print("🔗 Ask questions in plain English about health topics")
     print("🎨 User-friendly interface with helpful error messages")
@@ -3026,7 +1948,7 @@ if __name__ == "__main__":
     print(f"🚀 Starting on port {port}")
     print("🌐 Railway deployment ready!")
     print("📄 Required: dqs_catalog.csv and dqs_keywords.json files")
-    print("🌍 Access the web interface at:")
+    print("🌐 Access the web interface at:")
     print("   • Landing page: /")
     print("   • Main interface: /nlq")
     print("   • Example queries: /nlq_tester")
