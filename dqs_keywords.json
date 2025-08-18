@@ -240,6 +240,20 @@
       "national": "s57w-7gbe",
       "personal": "gu48-2cs8"
     },
+    "personal healthcare spending": {
+      "detailed": "gu48-2cs8"
+    },
+    "physician and clinical services": {
+      "spending": "gu48-2cs8"
+    },
+    "hospital care": {
+      "spending": "gu48-2cs8",
+      "utilization": "4q35-rqzk"
+    },
+    "dental services": {
+      "spending": "gu48-2cs8",
+      "care": "gj3i-hsbz"
+    },
     "hospital visits": {
       "adult": "gj3i-hsbz",
       "child": "7ctq-myvs",
@@ -269,7 +283,8 @@
     "prescription drugs": {
       "adult": "gj3i-hsbz",
       "child": "7ctq-myvs",
-      "detailed": "kusj-ex57"
+      "detailed": "kusj-ex57",
+      "spending": "gu48-2cs8"
     },
     "school attendance": {
       "child": "7ctq-myvs"
@@ -436,16 +451,18 @@
     "spending": "healthcare spending",
     "health spending": "healthcare spending",
     "national health": "healthcare spending",
-    "personal healthcare": "healthcare spending",
-    "hospital care": "healthcare spending",
-    "physician": "healthcare spending",
-    "clinical services": "healthcare spending",
-    "dental services": "healthcare spending",
+    "personal healthcare": "personal healthcare spending",
+    "personal healthcare spending": "personal healthcare spending",
+    "hospital care": "hospital care",
+    "physician": "physician and clinical services",
+    "physician services": "physician and clinical services",
+    "clinical services": "physician and clinical services",
+    "physician and clinical services": "physician and clinical services",
+    "dental services": "dental services",
     "home health": "healthcare spending",
     "nursing care": "healthcare spending",
-    "prescription drugs": "healthcare spending",
+    "prescription drugs": "prescription drugs",
     "doctor": "doctor visits",
-    "physician": "doctor visits",
     "medical visit": "doctor visits",
     "office visit": "doctor visits",
     "doctor visit": "doctor visits",
@@ -540,7 +557,6 @@
     "mdma": "substance use",
     "ecstasy": "substance use",
     "substance": "substance use",
-    "drugs": "substance use",
     "flu": "influenza vaccination",
     "influenza": "influenza vaccination",
     "flu shots": "influenza vaccination",
@@ -560,8 +576,7 @@
     "inoculation": "influenza vaccination",
     "workdays": "workplace attendance",
     "missed work": "workplace attendance",
-    "work": "workplace attendance",
-    "disability": "workplace attendance"
+    "work": "workplace attendance"
   },
   "dataset_metadata": {
     "gj3i-hsbz": {
@@ -891,7 +906,16 @@
     "mental health": "counseled-by-a-mental-health-professional",
     "learning disability": "ever-a-learning-disability-in-children",
     "school attendance": "missing-11-or-more-school-days-due-to-illness-or-injury",
-    "workplace attendance": "six-or-more-workdays-missed-due-to-illness-injury-or-disability"
+    "workplace attendance": "six-or-more-workdays-missed-due-to-illness-injury-or-disability",
+    "healthcare spending": "personal-healthcare-spending",
+    "personal healthcare spending": "personal-healthcare-spending",
+    "physician and clinical services": "physician-and-clinical-services",
+    "hospital care": "hospital-care",
+    "dental services": "dental-services",
+    "prescription drugs spending": "prescription-drugs",
+    "nursing care facilities": "nursing-care-facilities",
+    "home health care": "home-health-care",
+    "national health expenditures": "national-health-expenditures"
   },
   "grouping_categories": {
     "demographics": {
@@ -952,7 +976,8 @@
     "nutrition": ["8ekv-ep3s", "pket-re4s"],
     "oral_health": ["36ue-xht5", "gj3i-hsbz"],
     "mortality": ["w26f-tf3h", "rdjz-vn2n", "h3hw-hzvg", "7aq9-prdf", "j7ym-uwqy", "wd75-kcmv"],
-    "healthcare_system": ["gj3i-hsbz", "7ctq-myvs", "4q35-rqzk", "e4ec-z5aa", "8miz-siyd", "yib5-h3pw"]
+    "healthcare_system": ["gj3i-hsbz", "7ctq-myvs", "4q35-rqzk", "e4ec-z5aa", "8miz-siyd", "yib5-h3pw"],
+    "healthcare_spending": ["gu48-2cs8", "s57w-7gbe"]
   },
   "alternative_spellings": {
     "diabetes": ["diabeetus", "diabetis", "diabetus"],
