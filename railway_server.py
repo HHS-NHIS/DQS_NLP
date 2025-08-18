@@ -32,10 +32,18 @@ DQS_ALLOWED_DATASETS = os.getenv("DQS_ALLOWED_DATASETS", "").strip()
 
 app = FastAPI(title="CDC Health Data Question System")
 
-# Enhanced CORS for Railway deployment
+# Enhanced CORS for Railway deployment and CDC embedding
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your work domain
+    allow_origins=[
+        "https://www.cdc.gov", 
+        "https://cdc.gov",
+        "https://www.cdc.gov/nchs",
+        "https://nchsdata.cdc.gov",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "*"  # Remove this in production for security
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
