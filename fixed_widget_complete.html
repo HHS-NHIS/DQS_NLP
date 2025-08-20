@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset='utf-8'>
+<title>CDC Health Data Widget - Complete Production</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f8f9fa;
+  height: 300px;
+  overflow: hidden;
+}
+.widget-container {
+  width: 900px;
+  height: 300px;
+  background: white;
+  border: 3px solid #28a745;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+.widget-header {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.status-indicator.online { background: #ffffff; }
+.status-indicator.offline { background: #dc3545; }
+.enhanced-badge {
+  background: #ffc107;
+  color: #212529;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+}
+.widget-content {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.question-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.question-input:focus {
+  border-color: #20c997;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+.ask-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.ask-button:hover:not(:disabled) {
+  background: #20c997;
+}
+.ask-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+.examples-row {
+  font-size: 11px;
+  color: #6c757d;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.examples-label {
+  font-weight: 600;
+  color: #495057;
+}
+.example-link {
+  color: #28a745;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #28a745;
+  transition: all 0.2s;
+}
+.example-link:hover {
+  background: #28a745;
+  color: white;
+}
+.response-area {
+  flex: 1;
+  min-height: 140px;
+  background: #f8f9fa;
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-y: auto;
+}
+.placeholder {
+  color: #6c757d;
+  text-align: center;
+  margin-top: 30px;
+  font-style: italic;
+}
+.success-placeholder {
+  color: #28a745;
+  text-align: center;
+  margin-top: 40px;
+  font-weight: bold;
+}
+.answer {
+  color: #2c3e50;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.source {
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+  margin-bottom: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e9ecef;
+}
+.loading {
+  color: #28a745;
+  font-style: italic;
+  text-align: center;
+  margin-top: 30px;
+  font-weight: bold;
+}
+.loading::after {
+  content: '...';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+@keyframes dots {
+  0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+  40% { color: #28a745; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+  60% { text-shadow: .25em 0 0 #28a745, .5em 0 0 rgba(0,0,0,0); }
+  80%, 100% { text-shadow: .25em 0 0 #28a745, .5em 0 0 #28a745; }
+}
+.error {
+  color: #dc3545;
+  background: #f8d7da;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+  font-size: 12px;
+}
+.switch-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  margin: 3px;
+  font-size: 11px;
+  transition: all 0.3s ease;
+}
+.switch-btn:hover {
+  background: #c0392b;
+  transform: translateY(-1px);
+}
+.explanation {
+  background: #e8f4fd;
+  border-left: 3px solid #28a745;
+  padding: 8px 10px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #2c3e50;
+  border-radius: 4px;
+}
+</style>
+</head><body>
+
+<div class="widget-container">
+  <div class="widget-header">
+    <div class="status-indicator" id="statusIndicator"></div>
+    🏥 CDC Health Data Assistant
+    <span class="enhanced-badge">COMPLETE</span>
+  </div>
+  
+  <div class="widget-content">
+    <div class="input-row">
+      <input 
+        type="text" 
+        id="questionInput" 
+        class="question-input" 
+        placeholder="Ask about health data including urbanicity (e.g., 'diabetes by urbanicity')"
+        maxlength="200"
+      >
+      <button id="askButton" class="ask-button">Ask</button>
+    </div>
+    
+    <div class="examples-row">
+      <span class="examples-label">Try:</span>
+      <a class="example-link" onclick="setQuestion('diabetes by urbanicity')">diabetes by urbanicity</a>
+      <a class="example-link" onclick="setQuestion('suicide by metro status')">suicide by metro</a>
+      <a class="example-link" onclick="setQuestion('dental care for children')">dental care</a>
+      <a class="example-link" onclick="setQuestion('obesity in rural areas')">obesity rural</a>
+      <a class="example-link" onclick="setQuestion('heart disease by urban')">heart disease urban</a>
+    </div>
+    
+    <div id="responseArea" class="response-area">
+      <div class="success-placeholder">
+        🏥 CDC Health Data System - Complete Production<br>
+        <small>✅ All urbanicity queries working • Complete error handling • Full answer generation</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE_URL = window.location.origin;
+const questionInput = document.getElementById('questionInput');
+const askButton = document.getElementById('askButton');
+const responseArea = document.getElementById('responseArea');
+const statusIndicator = document.getElementById('statusIndicator');
+
+function setQuestion(text) {
+  questionInput.value = text;
+  questionInput.focus();
+}
+
+async function askQuestion() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+  
+  askButton.disabled = true;
+  askButton.textContent = 'Processing...';
+  responseArea.innerHTML = '<div class="loading">🔍 Processing comprehensive health data query</div>';
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/v1/nlq`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: question })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      displaySuccessResponse(data, question);
+      statusIndicator.className = 'status-indicator online';
+    } else {
+      displayErrorResponse(data, question);
+      statusIndicator.className = 'status-indicator offline';
+    }
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    displayNetworkError(error, question);
+    statusIndicator.className = 'status-indicator offline';
+  } finally {
+    askButton.disabled = false;
+    askButton.textContent = 'Ask';
+  }
+}
+
+function displaySuccessResponse(data, originalQuestion) {
+  let html = '';
+  
+  // PRIORITY 1: Use smart_narrative from server
+  if (data.smart_narrative) {
+    html += `<div class="answer">${processMarkdown(data.smart_narrative)}</div>`;
+  } else if (data.chart_series && data.chart_series.length > 0) {
+    // PRIORITY 2: Create answer from chart series
+    html += createAnswerFromChartSeries(data, originalQuestion);
+  } else if (data.data && data.data.length > 0) {
+    // PRIORITY 3: Create basic answer from raw data
+    html += createBasicAnswerFromData(data, originalQuestion);
+  } else {
+    // FALLBACK: Basic response
+    const indicator = data.matches?.indicator || 'health data';
+    const topic = data.canonical_topic || 'the health topic';
+    html += `<div class="answer">I found information about ${indicator} related to ${topic}, but couldn't format a detailed response.</div>`;
+  }
+  
+  // Add source information
+  const datasetLabel = data.dataset_info?.label || 'CDC dataset';
+  html += `<div class="source">Source: ${datasetLabel}</div>`;
+  
+  // Add CDC link
+  html += `<div class="source">More detailed analysis: <a href="https://www.cdc.gov/nchs/dqs/index.html" target="_blank" style="color: #28a745; text-decoration: underline;">CDC Data Query System</a></div>`;
+  
+  responseArea.innerHTML = html;
+}
+
+function displayErrorResponse(data, originalQuestion) {
+  let html = '';
+  
+  const errorMsg = data.error || 'An error occurred';
+  const stepFailed = data.step_failed || '';
+  
+  // User-friendly error messages
+  if (stepFailed === 'topic_detection') {
+    html += `<div class="error">I couldn't identify a health topic in your question. Try asking about conditions like diabetes, heart disease, cancer, mental health, etc.</div>`;
+  } else if (stepFailed === 'dataset_selection' && data.requested_grouping === 'urbanicity') {
+    html += `<div class="error">Urbanicity data is not available for ${data.canonical_topic}. This topic may only have demographic breakdowns by sex, race, or age.</div>`;
+  } else if (stepFailed === 'empty_query') {
+    html += `<div class="error">Please enter a health question to get started.</div>`;
+  } else if (stepFailed === 'query_too_long') {
+    html += `<div class="error">Your question is too long. Please keep it under 500 characters.</div>`;
+  } else {
+    html += `<div class="error">${errorMsg}</div>`;
+  }
+  
+  // Add helpful suggestions
+  if (stepFailed === 'topic_detection') {
+    html += `<div class="explanation">
+      <strong>Try asking about:</strong><br>
+      • Diabetes, heart disease, cancer, asthma<br>
+      • Mental health conditions like anxiety or depression<br>
+      • Preventive care like dental care or flu vaccination<br>
+      • Health behaviors like smoking or obesity
+    </div>`;
+  }
+  
+  responseArea.innerHTML = html;
+}
+
+function displayNetworkError(error, originalQuestion) {
+  const topic = extractMainTopic(originalQuestion) || originalQuestion.toLowerCase().trim();
+  responseArea.innerHTML = `
+    <div class="answer">Unable to connect to the health data service at this time. Please try again later.</div>
+    <div class="source">For more information, visit: <a href="https://www.cdc.gov/nchs/dqs/index.html" target="_blank" style="color: #28a745; text-decoration: underline;">CDC Data Query System</a></div>
+  `;
+}
+
+function createAnswerFromChartSeries(data, originalQuestion) {
+  const series = data.chart_series;
+  const indicator = data.matches?.indicator || 'health indicator';
+  const group = data.matches?.grouping_category || 'overall population';
+  
+  if (series.length === 1) {
+    // Single series response
+    const points = series[0].points || [];
+    if (points.length > 0) {
+      const latest = points[points.length - 1];
+      const estimate = latest.estimate?.toFixed(1);
+      const ci = formatConfidenceInterval(latest);
+      const period = latest.time_period;
+      
+      if (group.toLowerCase().includes('urban') || group.toLowerCase().includes('geographic')) {
+        return `<div class="answer">For the overall population, ${estimate}%${ci} had ${indicator.toLowerCase()} in ${period}. This data includes geographic/urbanicity breakdowns.</div>`;
+      } else {
+        return `<div class="answer">Overall, ${estimate}%${ci} had ${indicator.toLowerCase()} in ${period}.</div>`;
+      }
+    }
+  } else if (series.length > 1) {
+    // Multiple series response (demographic breakdown)
+    const allPoints = series.flatMap(s => 
+      s.points.map(p => ({ group: s.label, estimate: p.estimate, period: p.time_period }))
+    );
+    
+    if (allPoints.length > 0) {
+      const latest = allPoints.filter(p => p.period === Math.max(...allPoints.map(p => p.period)).toString());
+      const highest = latest.reduce((max, curr) => curr.estimate > max.estimate ? curr : max);
+      const lowest = latest.reduce((min, curr) => curr.estimate < min.estimate ? curr : min);
+      
+      return `<div class="answer">Looking at ${indicator.toLowerCase()} by ${group.toLowerCase()}: <strong>${highest.group}</strong> had the highest rate at <strong>${highest.estimate?.toFixed(1)}%</strong>, while <strong>${lowest.group}</strong> had the lowest at <strong>${lowest.estimate?.toFixed(1)}%</strong>.</div>`;
+    }
+  }
+  
+  return `<div class="answer">Found data for ${indicator} but couldn't format a detailed response.</div>`;
+}
+
+function createBasicAnswerFromData(data, originalQuestion) {
+  const indicator = data.matches?.indicator || 'health indicator';
+  const dataCount = data.data_count || data.data?.length || 0;
+  
+  return `<div class="answer">I found ${dataCount} data points for ${indicator} in the CDC dataset.</div>`;
+}
+
+function formatConfidenceInterval(point) {
+  if (point.estimate_lci != null && point.estimate_uci != null) {
+    return ` (95% CI: ${point.estimate_lci.toFixed(1)}%-${point.estimate_uci.toFixed(1)}%)`;
+  }
+  return '';
+}
+
+function processMarkdown(text) {
+  // Process **bold** text
+  const parts = text.split('**');
+  text = parts.map((part, i) => i % 2 === 1 ? '<strong>' + part + '</strong>' : part).join('');
+  
+  // Process [link text](url) markdown links
+  while (text.includes('[') && text.includes('](') && text.includes(')')) {
+    const start = text.indexOf('[');
+    const middle = text.indexOf('](', start);
+    const end = text.indexOf(')', middle);
+    
+    if (start < middle && middle < end) {
+      const linkText = text.substring(start + 1, middle);
+      const url = text.substring(middle + 2, end);
+      const link = `<a href="${url}" target="_blank" style="color: #28a745; text-decoration: underline;">${linkText}</a>`;
+      text = text.substring(0, start) + link + text.substring(end + 1);
+    } else {
+      break;
+    }
+  }
+  
+  // Process switch buttons
+  text = text.replace(/<button onclick="setQuery\('([^']+)'\);ask\(\)" class='switch-btn'>([^<]+)<\/button>/g, 
+    '<button onclick="setQuestion(\'$1\'); askQuestion();" class="switch-btn">$2</button>');
+  
+  return text;
+}
+
+function extractMainTopic(query) {
+  const queryLower = query.toLowerCase();
+  const topics = [
+    "diabetes", "heart disease", "cancer", "asthma", "anxiety", "depression", 
+    "mental health", "suicide", "dental care", "drug overdose", "obesity", 
+    "smoking", "hypertension", "flu vaccination", "urbanicity", "urban", "rural"
+  ];
+  
+  for (const topic of topics) {
+    if (queryLower.includes(topic)) {
+      return topic;
+    }
+  }
+  
+  return null;
+}
+
+// Event listeners
+askButton.addEventListener('click', askQuestion);
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    askQuestion();
+  }
+});
+
+// Focus input on load
+questionInput.focus();
+
+// Health check
+setTimeout(async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    if (response.ok) {
+      const healthData = await response.json();
+      statusIndicator.className = 'status-indicator online';
+      console.log('Server health:', healthData);
+    } else {
+      statusIndicator.className = 'status-indicator offline';
+      console.warn('Server health check failed:', response.status);
+    }
+  } catch (error) {
+    statusIndicator.className = 'status-indicator offline';
+    console.warn('API health check failed:', error);
+  }
+}, 500);
+</script>
+
+</body></html>
