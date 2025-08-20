@@ -18,7 +18,7 @@ import asyncio
 
 # PRODUCTION CONFIGURATION
 APP_NAME = "cdc_health_data_complete"
-APP_VERSION = "5.1.0-BULLETPROOF-TOPIC-DETECTION"  # UPDATED VERSION TO VERIFY RESTART
+APP_VERSION = "5.2.0-ULTRA-SIMPLE-TOPIC-DETECTION"  # UPDATED VERSION 
 LOCAL_DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 app = FastAPI(
@@ -1175,19 +1175,19 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     
     print("🏥 " + "="*70)
-    print("🏥  CDC HEALTH DATA SYSTEM - BULLETPROOF TOPIC DETECTION")
+    print("🏥  CDC HEALTH DATA SYSTEM - ULTRA-SIMPLE TOPIC DETECTION")
     print("🏥 " + "="*70)
     print(f"🏥  Version: {APP_VERSION}")
-    print(f"🏥  Status: BULLETPROOF TOPIC DETECTION - HISPANIC BUG FIXED")
+    print(f"🏥  Status: ULTRA-SIMPLE - NO REGEX, NO COMPLEX LOGIC")
     print(f"🏥  Port: {port}")
     print("🏥 " + "-"*70)
-    print("🏥  🎯 BULLETPROOF FIXES:")
-    print("🏥    • ✅ Hispanic/Panic Bug Fixed")
-    print("🏥    • ✅ Priority-Based Topic Detection") 
-    print("🏥    • ✅ Exact Word Matching Only")
-    print("🏥    • ✅ No More Substring False Matches")
-    print("🏥    • ✅ Hypertension Gets Priority Over Anxiety")
-    print("🏥    • ✅ Dental Care Gets Priority")
+    print("🏥  🎯 ULTRA-SIMPLE FIXES:")
+    print("🏥    • ✅ Strict Priority Order (Hypertension FIRST)")
+    print("🏥    • ✅ Simple String Matching (No Regex)")
+    print("🏥    • ✅ Panic Completely Removed (Hispanic Bug Fixed)")
+    print("🏥    • ✅ Diabetes Before Heart Disease")
+    print("🏥    • ✅ Anxiety LAST to Prevent False Matches")
+    print("🏥    • ✅ Each Check is Individual and Explicit")
     print("🏥 " + "="*70)
     
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
