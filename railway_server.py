@@ -18,7 +18,7 @@ import asyncio
 
 # PRODUCTION CONFIGURATION
 APP_NAME = "cdc_health_data_complete"
-APP_VERSION = "5.0.0-complete-urbanicity-fixed"
+APP_VERSION = "5.1.0-BULLETPROOF-TOPIC-DETECTION"  # UPDATED VERSION TO VERIFY RESTART
 LOCAL_DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 app = FastAPI(
@@ -1175,18 +1175,19 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     
     print("🏥 " + "="*70)
-    print("🏥  CDC HEALTH DATA SYSTEM - COMPLETE PRODUCTION")
+    print("🏥  CDC HEALTH DATA SYSTEM - BULLETPROOF TOPIC DETECTION")
     print("🏥 " + "="*70)
     print(f"🏥  Version: {APP_VERSION}")
-    print(f"🏥  Status: COMPLETE - ALL FEATURES WORKING")
+    print(f"🏥  Status: BULLETPROOF TOPIC DETECTION - HISPANIC BUG FIXED")
     print(f"🏥  Port: {port}")
     print("🏥 " + "-"*70)
-    print("🏥  🎯 COMPLETE FEATURES:")
-    print("🏥    • ✅ Full Urbanicity Support")
-    print("🏥    • ✅ Comprehensive Error Handling") 
-    print("🏥    • ✅ Complete Answer Generation")
-    print("🏥    • ✅ All Health Topics & Demographics")
-    print("🏥    • ✅ Ready for Comprehensive Testing")
+    print("🏥  🎯 BULLETPROOF FIXES:")
+    print("🏥    • ✅ Hispanic/Panic Bug Fixed")
+    print("🏥    • ✅ Priority-Based Topic Detection") 
+    print("🏥    • ✅ Exact Word Matching Only")
+    print("🏥    • ✅ No More Substring False Matches")
+    print("🏥    • ✅ Hypertension Gets Priority Over Anxiety")
+    print("🏥    • ✅ Dental Care Gets Priority")
     print("🏥 " + "="*70)
     
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
